@@ -2,235 +2,192 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>KinemaMotion - Clinical Biomechanics & Jump Analyzer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>KinemaMotion - OnForm-Style Biomechanics</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- MediaPipe Pose & Camera Utils -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-  
+
   <style>
     body {
-      background-color: #0b0f19;
-      color: #f1f5f9;
+      background-color: #000000;
+      color: #f8fafc;
       touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
-    .hud-box {
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(51, 65, 85, 0.6);
-    }
-    .glow-safe {
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
-      border-color: rgba(16, 185, 129, 0.8);
+    .onform-glass {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
     .glow-danger {
-      box-shadow: 0 0 20px rgba(244, 63, 94, 0.5);
-      border-color: rgba(244, 63, 94, 0.9);
+      box-shadow: inset 0 0 30px rgba(239, 68, 68, 0.6);
+      border-color: rgba(239, 68, 68, 0.9);
       animation: alert-pulse 0.5s infinite alternate;
     }
     @keyframes alert-pulse {
-      0% { box-shadow: 0 0 10px rgba(244, 63, 94, 0.3); }
-      100% { box-shadow: 0 0 30px rgba(244, 63, 94, 0.7); }
+      0% { box-shadow: inset 0 0 15px rgba(239, 68, 68, 0.3); }
+      100% { box-shadow: inset 0 0 45px rgba(239, 68, 68, 0.7); }
     }
-    input[type="checkbox"] {
-      accent-color: #06b6d4;
-    }
+    input[type="checkbox"] { accent-color: #06b6d4; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col p-3 md:p-5 select-none">
-  
-  <!-- トップナビゲーション -->
-  <header class="max-w-7xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-    <div class="flex items-center gap-2.5">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/30">
-        KM
-      </div>
-      <div>
-        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
-          KinemaMotion <span class="text-[10px] text-cyan-400 font-mono px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800">CLINICAL SUITE</span>
-        </h1>
-        <p class="text-[11px] text-slate-400 hidden sm:block">Real-Time Biomechanics & Jump Dynamic Kinematics</p>
-      </div>
-    </div>
+<body class="h-[100dvh] w-screen flex flex-col justify-between overflow-hidden font-sans">
 
-    <!-- モード切り替えタブ -->
-    <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
-      <button id="tabRomBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 text-white transition-all shadow-sm">
-        可動域・アライメント
-      </button>
-      <button id="tabJumpBtn" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all">
-        CMJジャンプ・着地分析
-      </button>
-    </div>
-
-    <!-- アクションコントロール -->
+  <!-- ========================================== -->
+  <!-- 1. TOP TOOLBAR (OnForm Header)             -->
+  <!-- ========================================== -->
+  <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between">
+    <!-- ロゴ & アプリ名 -->
     <div class="flex items-center gap-2">
-      <!-- カメラ反転ボタン (iPad/スマホ用) -->
-      <button id="flipCamBtn" title="イン/アウトカメラ切り替え" class="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-cyan-400 transition-colors text-xs flex items-center gap-1">
-        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-        <span class="hidden md:inline">カメラ切替</span>
-      </button>
+      <div class="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center font-black text-xs text-black shadow-md shadow-cyan-500/20">KM</div>
+      <div class="flex flex-col">
+        <span class="text-xs font-bold tracking-tight leading-none text-white">KinemaMotion</span>
+        <span class="text-[9px] text-slate-400 font-mono">ONFORM EDITION</span>
+      </div>
+    </div>
 
-      <!-- 録画ボタン -->
-      <button id="startRecBtn" class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition-all flex items-center gap-1.5 shadow-md shadow-emerald-900/40">
-        <span class="w-2.5 h-2.5 rounded-full bg-white"></span>
-        測定開始
+    <!-- モード切り替え (ROM vs CMJ) -->
+    <div class="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-700/60">
+      <button id="tabRomBtn" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-cyan-600 text-white transition-all shadow-sm">
+        可動域
       </button>
-      <button id="stopRecBtn" disabled class="px-3.5 py-1.5 rounded-lg bg-rose-600/30 text-xs font-bold text-slate-500 cursor-not-allowed transition-all flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-sm bg-current"></span>
-        測定終了 & CSV保存
+      <button id="tabJumpBtn" class="px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-400 hover:text-white transition-all">
+        CMJジャンプ
+      </button>
+    </div>
+
+    <!-- カメラ切替 & 水平インジケータ -->
+    <div class="flex items-center gap-2">
+      <div class="hidden sm:flex items-center gap-1.5 font-mono text-[10px]">
+        <span id="shTiltBadge" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">肩: 0.0°</span>
+        <span id="pelTiltBadge" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">骨盤: 0.0°</span>
+      </div>
+      <button id="flipCamBtn" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700">
+        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
       </button>
     </div>
   </header>
 
-  <!-- メインワークスペース -->
-  <main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5 mt-4 flex-1">
-    
-    <!-- 左側：カメラ・ピクトグラム描画コンテナ (8カラム) -->
-    <section class="lg:col-span-8 flex flex-col gap-3">
-      <div id="canvasWrapper" class="hud-box rounded-2xl overflow-hidden relative aspect-video flex items-center justify-center bg-black">
-        <video id="inputVideo" class="hidden" autoplay playsinline muted></video>
-        <!-- 描画キャンバス -->
-        <canvas id="outputCanvas" class="w-full h-full object-contain"></canvas>
+  <!-- ========================================== -->
+  <!-- 2. MAIN VIEWPORT (Full-Screen Camera HUD)  -->
+  <!-- ========================================== -->
+  <main class="flex-1 relative w-full h-full flex items-center justify-center bg-black overflow-hidden">
+    <video id="inputVideo" class="hidden" autoplay playsinline muted></video>
+    <!-- メインキャンバス -->
+    <canvas id="outputCanvas" class="w-full h-full object-contain"></canvas>
 
-        <!-- モデル初期ロード中オーバーレイ -->
-        <div id="loadingStatus" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center text-cyan-400 text-sm gap-3 z-30">
-          <div class="w-9 h-9 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-          <span class="font-mono text-xs">MediaPipe Pose AIエンジン起動中...</span>
-        </div>
+    <!-- 初期ロード画面 -->
+    <div id="loadingStatus" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-cyan-400 text-xs gap-3 z-40">
+      <div class="w-8 h-8 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+      <span class="font-mono">AIエンジン起動中...</span>
+    </div>
 
-        <!-- 水平ライン判定インジケータ（画面上部中央） -->
-        <div class="absolute top-3 inset-x-0 flex justify-center pointer-events-none z-20 gap-2">
-          <div id="shoulderBadge" class="hud-box px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border border-slate-700">
-            <span class="text-slate-400">肩峰軸:</span>
-            <span id="shoulderAngleText" class="font-bold text-slate-200">0.0°</span>
-          </div>
-          <div id="pelvisBadge" class="hud-box px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border border-slate-700">
-            <span class="text-slate-400">骨盤軸:</span>
-            <span id="pelvisAngleText" class="font-bold text-slate-200">0.0°</span>
-          </div>
-        </div>
+    <!-- 録画中ステータスバッジ -->
+    <div id="recIndicator" class="absolute top-3 left-3 hidden items-center gap-2 bg-rose-950/80 border border-rose-600 px-3 py-1 rounded-full backdrop-blur z-20">
+      <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+      <span class="text-xs font-bold font-mono text-rose-300">REC <span id="recDuration">0.0</span>s</span>
+    </div>
 
-        <!-- 録画中ステータスバッジ -->
-        <div id="recIndicator" class="absolute top-3 left-3 hidden items-center gap-2 bg-rose-950/80 border border-rose-600 px-3 py-1 rounded-full backdrop-blur z-20">
-          <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-          <span class="text-xs font-bold font-mono text-rose-300">REC: <span id="recDuration">0.0</span>s</span>
-        </div>
+    <!-- 水平度ステータス（スマホ用小型バー） -->
+    <div class="absolute top-3 inset-x-0 flex sm:hidden justify-center pointer-events-none gap-2 z-20 font-mono text-[10px]">
+      <span id="shTiltBadgeMob" class="px-2 py-0.5 rounded bg-slate-900/80 text-slate-400 border border-slate-700">肩 0.0°</span>
+      <span id="pelTiltBadgeMob" class="px-2 py-0.5 rounded bg-slate-900/80 text-slate-400 border border-slate-700">骨盤 0.0°</span>
+    </div>
 
-        <!-- アラートバナー -->
-        <div id="alertBanner" class="absolute bottom-4 inset-x-4 py-2 text-center text-xs font-bold rounded-xl hidden backdrop-blur z-20 shadow-lg"></div>
+    <!-- CMJジャンプ結果カード（ジャンプモード時のみフローティング） -->
+    <div id="jumpFloatCard" class="absolute top-12 sm:top-4 right-3 hidden flex-col gap-1 p-2.5 rounded-xl onform-glass border border-indigo-500/50 z-20">
+      <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Estimated Jump</div>
+      <div class="flex items-baseline gap-1">
+        <span id="jumpHeightVal" class="text-2xl font-black font-mono text-white">0.0</span>
+        <span class="text-xs font-bold text-slate-400">cm</span>
       </div>
+      <div class="text-[10px] text-indigo-300 font-mono">Flight: <span id="flightTimeVal">0</span>ms</div>
+    </div>
 
-      <div class="flex items-center justify-between text-xs text-slate-400 font-mono px-2">
-        <span>FPS: <span id="fpsVal" class="text-cyan-400">0</span></span>
-        <span>記録フレーム数: <span id="recFrameCount" class="text-slate-300 font-semibold">0</span> frames</span>
-      </div>
-    </section>
-
-    <!-- 右側：コントローラー & 計測ダッシュボード (4カラム) -->
-    <section class="lg:col-span-4 flex flex-col gap-4">
-      
-      <!-- CMJジャンプ専用ダッシュボード（Jumpモード時表示） -->
-      <div id="jumpPanel" class="hud-box p-4 rounded-xl hidden flex-col gap-3 border border-indigo-500/40">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <h3 class="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
-            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-            CMJ（カウンタームーブメントジャンプ）
-          </h3>
-          <span id="jumpStateBadge" class="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-400 font-mono border border-indigo-800">READY</span>
-        </div>
-
-        <!-- ジャンプ主要スコアカード -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400">推定跳躍高 (cm)</span>
-            <div class="my-1 flex items-baseline gap-1">
-              <span id="jumpHeightVal" class="text-3xl font-extrabold font-mono text-white">0.0</span>
-              <span class="text-xs font-semibold text-slate-400">cm</span>
-            </div>
-            <span class="text-[10px] text-slate-500 font-mono">Flight: <span id="flightTimeVal">0</span> ms</span>
-          </div>
-
-          <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800">
-            <span class="text-[11px] text-slate-400">垂直加速度 (Y-Acc)</span>
-            <div class="my-1 flex items-baseline gap-1">
-              <span id="vertAccVal" class="text-2xl font-bold font-mono text-cyan-400">0.0</span>
-              <span class="text-xs font-semibold text-slate-400">m/s²</span>
-            </div>
-            <span id="accDirLabel" class="text-[10px] text-slate-500 font-mono">Stable</span>
-          </div>
-        </div>
-
-        <div class="text-[11px] text-slate-300 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 leading-relaxed">
-          <strong>判定ロジック：</strong>足部離地〜着地までの滞空時間から物理式（<span class="font-mono text-indigo-300">h = 1/8·g·t²</span>）で跳躍高を算出。着地時のニーイン（膝外反）を自動検知します。
-        </div>
-      </div>
-
-      <!-- 全大関節チェックボックス（画面内HUD表示セレクター） -->
-      <div id="romPanel" class="hud-box p-4 rounded-xl flex flex-col gap-3">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <h3 class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            大関節 角度HUDセレクター
-          </h3>
-          <span class="text-[10px] text-cyan-400 font-mono">BILATERAL</span>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <!-- 右側関節 -->
-          <div class="flex flex-col gap-1.5 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-            <span class="text-[10px] font-bold text-cyan-400 border-b border-slate-800 pb-1">右側 (Right)</span>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkRKnee" checked><span class="text-slate-300">右 膝関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkRHip" checked><span class="text-slate-300">右 股関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkRAnkle"><span class="text-slate-300">右 足関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkRElbow"><span class="text-slate-300">右 肘関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkRShoulder"><span class="text-slate-300">右 肩関節</span></label>
-          </div>
-
-          <!-- 左側関節 -->
-          <div class="flex flex-col gap-1.5 p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-            <span class="text-[10px] font-bold text-indigo-400 border-b border-slate-800 pb-1">左側 (Left)</span>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkLKnee"><span class="text-slate-300">左 膝関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkLHip"><span class="text-slate-300">左 股関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkLAnkle"><span class="text-slate-300">左 足関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkLElbow"><span class="text-slate-300">左 肘関節</span></label>
-            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="chkLShoulder"><span class="text-slate-300">左 肩関節</span></label>
-          </div>
-        </div>
-
-        <label class="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-xs cursor-pointer">
-          <div class="flex items-center gap-2">
-            <input type="checkbox" id="chkTrunk" checked>
-            <span class="text-slate-200 font-medium">体幹前傾角度 (鉛直比)</span>
-          </div>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">Trunk</span>
-        </label>
-      </div>
-
-      <!-- 水平・アライメント解説カード -->
-      <div class="hud-box p-3.5 rounded-xl flex flex-col gap-2 text-xs">
-        <span class="font-bold text-slate-300 flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-          アライメント水平基準（±2.5°以内）
-        </span>
-        <p class="text-[11px] text-slate-400 leading-relaxed">
-          肩峰および骨盤を結ぶラインが地面と平行になると、ラインと上部バッジが<strong>緑色に発光</strong>します。側屈やトレンデレンブルグ徴候の評価に有効です。
-        </p>
-      </div>
-    </section>
+    <!-- ニーイン警告バナー -->
+    <div id="alertBanner" class="absolute bottom-4 inset-x-4 py-2 text-center text-xs font-bold rounded-xl hidden backdrop-blur z-20 shadow-xl border border-rose-500 bg-rose-600/90 text-white"></div>
   </main>
+
+  <!-- ========================================== -->
+  <!-- 3. BOTTOM CONTROL BAR (OnForm Controls)    -->
+  <!-- ========================================== -->
+  <footer class="w-full z-30 onform-glass border-t border-slate-800/80 px-4 py-3 flex items-center justify-between">
+    
+    <!-- 左側：関節HUD設定ボタン（ドロワー開閉） -->
+    <button id="openJointMenuBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-cyan-400 transition-colors w-16">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+      <span class="text-[10px] font-medium leading-none">関節HUD</span>
+    </button>
+
+    <!-- 中央：巨大シャッター／RECボタン (OnForm風) -->
+    <div class="flex items-center justify-center">
+      <button id="recShutterBtn" class="relative w-14 h-14 rounded-full border-4 border-slate-300 flex items-center justify-center shadow-lg active:scale-95 transition-all">
+        <div id="shutterInner" class="w-10 h-10 rounded-full bg-rose-600 transition-all duration-200"></div>
+      </button>
+    </div>
+
+    <!-- 右側：CSV保存ボタン -->
+    <button id="exportCsvBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors w-16">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <span class="text-[10px] font-medium leading-none">CSV保存</span>
+    </button>
+  </footer>
+
+  <!-- ========================================== -->
+  <!-- 4. 関節HUD選択シート (ボトムドロワー)        -->
+  <!-- ========================================== -->
+  <div id="jointDrawer" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex-col justify-end">
+    <div class="w-full max-w-lg mx-auto bg-slate-900 border-t border-slate-700 rounded-t-2xl p-4 flex flex-col gap-3 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          表示関節の個別選択
+        </span>
+        <button id="closeJointMenuBtn" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800">完了</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <!-- 右側関節 -->
+        <div class="flex flex-col gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+          <span class="text-[10px] font-bold text-cyan-400 border-b border-slate-800 pb-1">右側 (Right)</span>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkRKnee" checked><span class="text-slate-300">右 膝屈曲</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkRHip" checked><span class="text-slate-300">右 股関節</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkRAnkle"><span class="text-slate-300">右 足関節</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkRElbow"><span class="text-slate-300">右 肘屈曲</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkRShoulder"><span class="text-slate-300">右 肩関節</span></label>
+        </div>
+
+        <!-- 左側関節 -->
+        <div class="flex flex-col gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+          <span class="text-[10px] font-bold text-indigo-400 border-b border-slate-800 pb-1">左側 (Left)</span>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkLKnee"><span class="text-slate-300">左 膝屈曲</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkLHip"><span class="text-slate-300">左 股関節</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkLAnkle"><span class="text-slate-300">左 足関節</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkLElbow"><span class="text-slate-300">左 肘屈曲</span></label>
+          <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="chkLShoulder"><span class="text-slate-300">左 肩関節</span></label>
+        </div>
+      </div>
+
+      <label class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs cursor-pointer">
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="chkTrunk" checked>
+          <span class="text-slate-200">体幹前傾角度（鉛直軸比）</span>
+        </div>
+        <span class="text-[10px] font-mono text-cyan-400">Trunk</span>
+      </label>
+    </div>
+  </div>
 
   <script>
     // ----------------------------------------------------
-    // 1. 音声フィードバックシンセサイザー (Web Audio API)
+    // 音声フィードバックシンセサイザー (Web Audio)
     // ----------------------------------------------------
     class AudioEngine {
-      constructor() {
-        this.ctx = null;
-        this.lastBeep = 0;
-      }
+      constructor() { this.ctx = null; this.lastBeep = 0; }
       init() {
         if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -271,7 +228,7 @@
     const audio = new AudioEngine();
 
     // ----------------------------------------------------
-    // 2. 幾何学・バイオメカニクス計算ユーティリティ
+    // 幾何学計算
     // ----------------------------------------------------
     function calculateAngle(a, b, c) {
       const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
@@ -280,40 +237,35 @@
       return angle;
     }
 
-    // 2点間の水平に対する傾斜角 (度数法)
     function calculateHorizontalTilt(p1, p2) {
       const dy = p2.y - p1.y;
       const dx = p2.x - p1.x;
-      const deg = Math.atan2(dy, dx) * 180 / Math.PI;
-      return Math.abs(deg);
+      return Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
     }
 
     // ----------------------------------------------------
-    // 3. アプリケーションステート & 変数
+    // ステート & 変数
     // ----------------------------------------------------
     const videoElement = document.getElementById('inputVideo');
     const canvasElement = document.getElementById('outputCanvas');
     const canvasCtx = canvasElement.getContext('2d');
 
     let currentMode = 'rom'; // 'rom' or 'jump'
-    let facingUser = true;    // true: インカメラ(鏡像反転), false: 外カメラ
+    let facingUser = true;
 
-    // 測定記録ステート
     let isRecording = false;
     let recordStartTime = 0;
     let recordedDataset = [];
 
-    // ジャンプ解析用ステート
-    let jumpState = 'ground'; // 'ground', 'air', 'landing'
+    let jumpState = 'ground';
     let flightStartTime = 0;
     let prevComY = null;
     let prevVelocityY = 0;
-    let currentAccY = 0; // m/s^2 推定
+    let currentAccY = 0;
 
     let lastTime = performance.now();
     let frameCount = 0;
 
-    // 全身ピクトグラム接続ペア
     const SKELETON_PAIRS = [
       [11, 12], [23, 24], [11, 23], [12, 24],
       [11, 13], [13, 15], [12, 14], [14, 16],
@@ -322,7 +274,7 @@
     ];
 
     // ----------------------------------------------------
-    // 4. MediaPipe Pose の初期化 & コールバック
+    // MediaPipe Pose
     // ----------------------------------------------------
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -340,24 +292,17 @@
 
       const now = performance.now();
       frameCount++;
-      if (now - lastTime >= 1000) {
-        document.getElementById('fpsVal').innerText = frameCount;
-        frameCount = 0;
-        lastTime = now;
-      }
 
       canvasElement.width = videoElement.videoWidth;
       canvasElement.height = videoElement.videoHeight;
       const w = canvasElement.width;
       const h = canvasElement.height;
 
-      // カメラ映像描画
       canvasCtx.drawImage(results.image, 0, 0, w, h);
 
       if (results.poseLandmarks) {
         const lm = results.poseLandmarks;
 
-        // 主要点インデックス
         const lShoulder = lm[11], rShoulder = lm[12];
         const lElbow = lm[13],    rElbow = lm[14];
         const lWrist = lm[15],    rWrist = lm[16];
@@ -378,112 +323,85 @@
         const lElbowAngle = Math.max(0, 180 - calculateAngle(lShoulder, lElbow, lWrist));
         const rShoulderAngle = calculateAngle(rHip, rShoulder, rElbow);
         const lShoulderAngle = calculateAngle(lHip, lShoulder, lElbow);
-        
-        // 体幹前傾（大転子中点から肩峰中点ベクトルの鉛直傾き）
+
         const midHip = { x: (lHip.x + rHip.x) / 2, y: (lHip.y + rHip.y) / 2 };
         const midShoulder = { x: (lShoulder.x + rShoulder.x) / 2, y: (lShoulder.y + rShoulder.y) / 2 };
         const trunkAngle = Math.abs(Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * 180 / Math.PI);
 
-        // ----------------------------------------------------
-        // 肩峰ライン & 骨盤ラインの水平度判定 (±2.5°)
-        // ----------------------------------------------------
+        // 水平度算出
         const shoulderTilt = calculateHorizontalTilt(lShoulder, rShoulder);
         const pelvisTilt = calculateHorizontalTilt(lHip, rHip);
-
         const isShoulderLevel = shoulderTilt <= 2.5;
         const isPelvisLevel = pelvisTilt <= 2.5;
 
-        // 上部バッジの更新
-        const shBadge = document.getElementById('shoulderBadge');
-        shBadge.className = `hud-box px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border ${isShoulderLevel ? 'border-emerald-500 text-emerald-400 bg-emerald-950/40' : 'border-slate-700 text-slate-300'}`;
-        document.getElementById('shoulderAngleText').innerText = `${shoulderTilt.toFixed(1)}°`;
-
-        const pelBadge = document.getElementById('pelvisBadge');
-        pelBadge.className = `hud-box px-2.5 py-1 rounded-lg text-[11px] font-mono flex items-center gap-1.5 border ${isPelvisLevel ? 'border-emerald-500 text-emerald-400 bg-emerald-950/40' : 'border-slate-700 text-slate-300'}`;
-        document.getElementById('pelvisAngleText').innerText = `${pelvisTilt.toFixed(1)}°`;
+        // 水平バッジ更新 (PC & スマホ)
+        const updateTiltBadge = (id, label, deg, isLevel) => {
+          const el = document.getElementById(id);
+          el.innerText = `${label}: ${deg.toFixed(1)}°`;
+          el.className = isLevel ? 'px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500 font-bold' : 'px-2 py-0.5 rounded bg-slate-900/80 text-slate-400 border border-slate-700';
+        };
+        updateTiltBadge('shTiltBadge', '肩', shoulderTilt, isShoulderLevel);
+        updateTiltBadge('pelTiltBadge', '骨盤', pelvisTilt, isPelvisLevel);
+        updateTiltBadge('shTiltBadgeMob', '肩', shoulderTilt, isShoulderLevel);
+        updateTiltBadge('pelTiltBadgeMob', '骨盤', pelvisTilt, isPelvisLevel);
 
         // ----------------------------------------------------
-        // CMJジャンプ & 垂直加速度ロジック (Y-Axis Tracking)
+        // CMJジャンプ判定
         // ----------------------------------------------------
         if (currentMode === 'jump') {
-          const comY = midHip.y; // 骨盤中心を身体重心の代理点とする
+          const comY = midHip.y;
           if (prevComY !== null) {
-            const dt = 1.0 / (frameCount || 30);
-            const velY = (prevComY - comY) / dt; // 上向きを正とする
-            const accY = ((velY - prevVelocityY) / dt) * 9.8; // m/s^2 相当にスケーリング
-            currentAccY = accY;
+            const dt = 1.0 / 30;
+            const velY = (prevComY - comY) / dt;
+            currentAccY = ((velY - prevVelocityY) / dt) * 9.8;
             prevVelocityY = velY;
-
-            document.getElementById('vertAccVal').innerText = Math.abs(currentAccY).toFixed(1);
-            document.getElementById('accDirLabel').innerText = currentAccY > 2 ? 'Accelerating ↑' : (currentAccY < -2 ? 'Decelerating ↓' : 'Stable');
           }
           prevComY = comY;
 
-          // 足部浮上による離地・着地（滞空時間）検出
-          const feetOffGround = (lAnkle.y < 0.82 && rAnkle.y < 0.82); // 離地判定
-          const jumpBadge = document.getElementById('jumpStateBadge');
-
+          const feetOffGround = (lAnkle.y < 0.82 && rAnkle.y < 0.82);
           if (jumpState === 'ground' && feetOffGround) {
-            // 離地 (Take-off)
             jumpState = 'air';
             flightStartTime = now;
-            jumpBadge.innerText = 'AIRBORNE (滞空中)';
-            jumpBadge.className = 'text-[10px] px-2 py-0.5 rounded bg-amber-950 text-amber-400 font-mono border border-amber-800 animate-pulse';
-          } 
-          else if (jumpState === 'air' && !feetOffGround) {
-            // 着地 (Touchdown)
+          } else if (jumpState === 'air' && !feetOffGround) {
             jumpState = 'ground';
             const flightTimeMs = now - flightStartTime;
-            if (flightTimeMs > 150 && flightTimeMs < 1200) { // ノイズ除去
-              const flightTimeSec = flightTimeMs / 1000.0;
-              // 滞空時間法: h = 1/8 * g * t^2
-              const jumpHeightCm = (122.6 * Math.pow(flightTimeSec, 2)).toFixed(1);
-
+            if (flightTimeMs > 150 && flightTimeMs < 1200) {
+              const flightSec = flightTimeMs / 1000.0;
+              const jumpHeightCm = (122.6 * Math.pow(flightSec, 2)).toFixed(1);
               document.getElementById('jumpHeightVal').innerText = jumpHeightCm;
               document.getElementById('flightTimeVal').innerText = Math.round(flightTimeMs);
               audio.playChime();
             }
-            jumpBadge.innerText = 'TOUCHDOWN';
-            jumpBadge.className = 'text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 font-mono border border-emerald-800';
           }
 
-          // 着地時のニーイン（動的膝外反）スクリーニング
-          // 膝間距離と足首間距離の比率で判定
+          // ニーイン判定
           const kneeDist = Math.abs(lKnee.x - rKnee.x);
           const ankleDist = Math.abs(lAnkle.x - rAnkle.x);
           const isKneeIn = (kneeDist < ankleDist * 0.72) && (rKneeAngle > 30 || lKneeAngle > 30);
           const banner = document.getElementById('alertBanner');
-          const wrapper = document.getElementById('canvasWrapper');
 
           if (isKneeIn) {
             audio.playAlert();
-            wrapper.className = 'hud-box rounded-2xl overflow-hidden relative aspect-video flex items-center justify-center bg-black glow-danger';
-            banner.innerText = '⚠️ CAUTION: ニーイン (動的膝外反) を検知しました';
-            banner.className = 'absolute bottom-4 inset-x-4 py-2 text-center text-xs font-bold rounded-xl block bg-rose-600/90 text-white border border-rose-400 z-20 shadow-lg';
+            banner.innerText = '⚠️ CAUTION: ニーイン (動的膝外反) 警告';
+            banner.className = 'absolute bottom-4 inset-x-4 py-2 text-center text-xs font-bold rounded-xl block bg-rose-600/90 text-white border border-rose-400 z-20 shadow-xl';
           } else {
-            wrapper.className = 'hud-box rounded-2xl overflow-hidden relative aspect-video flex items-center justify-center bg-black';
             banner.className = 'hidden';
           }
         }
 
         // ----------------------------------------------------
-        // 5. ピクトグラム & アライメントラインの描画
+        // ピクトグラム描画
         // ----------------------------------------------------
         const baseColor = isRecording ? '#10b981' : '#38bdf8';
         const jointColor = isRecording ? '#059669' : '#0284c7';
 
-        // 骨格接続線
         SKELETON_PAIRS.forEach(([i, j]) => {
           const p1 = lm[i], p2 = lm[j];
           if (p1.visibility > 0.4 && p2.visibility > 0.4) {
-            // 肩峰ラインと骨盤ラインの水平時はグリーンに発光
             let stroke = baseColor;
-            let lineW = 4;
-            if ((i === 11 && j === 12) && isShoulderLevel) {
-              stroke = '#10b981'; lineW = 6;
-            } else if ((i === 23 && j === 24) && isPelvisLevel) {
-              stroke = '#10b981'; lineW = 6;
-            }
+            let lineW = 3.5;
+            if ((i === 11 && j === 12) && isShoulderLevel) { stroke = '#10b981'; lineW = 5; }
+            if ((i === 23 && j === 24) && isPelvisLevel) { stroke = '#10b981'; lineW = 5; }
 
             canvasCtx.beginPath();
             canvasCtx.moveTo(p1.x * w, p1.y * h);
@@ -495,29 +413,29 @@
           }
         });
 
-        // 背骨ライン
+        // 背骨
         canvasCtx.beginPath();
         canvasCtx.moveTo(midShoulder.x * w, midShoulder.y * h);
         canvasCtx.lineTo(midHip.x * w, midHip.y * h);
         canvasCtx.strokeStyle = '#94a3b8';
-        canvasCtx.lineWidth = 4;
+        canvasCtx.lineWidth = 3.5;
         canvasCtx.stroke();
 
-        // 頭部ピクトグラムサークル
+        // 頭部円
         if (nose.visibility > 0.4) {
           canvasCtx.beginPath();
           canvasCtx.moveTo(midShoulder.x * w, midShoulder.y * h);
           canvasCtx.lineTo(nose.x * w, nose.y * h);
           canvasCtx.strokeStyle = '#94a3b8';
-          canvasCtx.lineWidth = 4;
+          canvasCtx.lineWidth = 3.5;
           canvasCtx.stroke();
 
           canvasCtx.beginPath();
-          canvasCtx.arc(nose.x * w, nose.y * h, 14, 0, 2 * Math.PI);
+          canvasCtx.arc(nose.x * w, nose.y * h, 13, 0, 2 * Math.PI);
           canvasCtx.fillStyle = baseColor;
           canvasCtx.fill();
           canvasCtx.strokeStyle = '#ffffff';
-          canvasCtx.lineWidth = 2.5;
+          canvasCtx.lineWidth = 2;
           canvasCtx.stroke();
         }
 
@@ -526,7 +444,7 @@
           const pt = lm[idx];
           if (pt.visibility > 0.4) {
             canvasCtx.beginPath();
-            canvasCtx.arc(pt.x * w, pt.y * h, 5.5, 0, 2 * Math.PI);
+            canvasCtx.arc(pt.x * w, pt.y * h, 5, 0, 2 * Math.PI);
             canvasCtx.fillStyle = jointColor;
             canvasCtx.fill();
             canvasCtx.strokeStyle = '#ffffff';
@@ -535,29 +453,28 @@
           }
         });
 
-        // 垂直加速度ベクトル矢印 (Jumpモード時に骨盤中心から動的描画)
+        // 垂直加速度ベクトル（ジャンプ時）
         if (currentMode === 'jump' && Math.abs(currentAccY) > 3) {
-          const arrowLen = Math.min(Math.max(currentAccY * 3.5, -80), 80);
+          const arrowLen = Math.min(Math.max(currentAccY * 3, -70), 70);
           const startX = midHip.x * w;
           const startY = midHip.y * h;
-          const endY = startY - arrowLen; // 上向きがマイナスY
+          const endY = startY - arrowLen;
 
           canvasCtx.beginPath();
           canvasCtx.moveTo(startX, startY);
           canvasCtx.lineTo(startX, endY);
           canvasCtx.strokeStyle = arrowLen > 0 ? '#38bdf8' : '#f43f5e';
-          canvasCtx.lineWidth = 5;
+          canvasCtx.lineWidth = 4;
           canvasCtx.stroke();
 
-          // 矢印の先端
           canvasCtx.beginPath();
-          canvasCtx.arc(startX, endY, 6, 0, 2 * Math.PI);
+          canvasCtx.arc(startX, endY, 5, 0, 2 * Math.PI);
           canvasCtx.fillStyle = arrowLen > 0 ? '#38bdf8' : '#f43f5e';
           canvasCtx.fill();
         }
 
         // ----------------------------------------------------
-        // 6. 画面内オーバーレイHUDタグの描画
+        // 角度HUDタグ描画
         // ----------------------------------------------------
         const drawTag = (pt, label, val, color = '#06b6d4') => {
           if (!pt || pt.visibility < 0.45) return;
@@ -566,7 +483,6 @@
           const text = `${label}: ${val.toFixed(1)}°`;
 
           canvasCtx.save();
-          // インカメラ鏡像時は文字が反転しないようローカルでX軸反転
           if (facingUser) {
             canvasCtx.translate(x, y);
             canvasCtx.scale(-1, 1);
@@ -594,7 +510,6 @@
           canvasCtx.restore();
         };
 
-        // 各チェックボックスに応じたオーバーレイ表示
         if (document.getElementById('chkRKnee').checked) drawTag(rKnee, 'R-Knee', rKneeAngle, '#06b6d4');
         if (document.getElementById('chkLKnee').checked) drawTag(lKnee, 'L-Knee', lKneeAngle, '#38bdf8');
         if (document.getElementById('chkRHip').checked) drawTag(rHip, 'R-Hip', rHipAngle, '#818cf8');
@@ -607,14 +522,10 @@
         if (document.getElementById('chkLShoulder').checked) drawTag(lShoulder, 'L-Shoulder', lShoulderAngle, '#cbd5e1');
         if (document.getElementById('chkTrunk').checked) drawTag(midShoulder, 'Trunk', trunkAngle, '#f43f5e');
 
-        // ----------------------------------------------------
-        // 7. 測定中データバッファ蓄積
-        // ----------------------------------------------------
+        // 記録蓄積
         if (isRecording) {
           const elapsed = ((now - recordStartTime) / 1000.0).toFixed(3);
           document.getElementById('recDuration').innerText = elapsed;
-          document.getElementById('recFrameCount').innerText = recordedDataset.length + 1;
-
           recordedDataset.push({
             time: elapsed,
             rKnee: rKneeAngle.toFixed(2),
@@ -633,22 +544,15 @@
     });
 
     // ----------------------------------------------------
-    // 8. カメラコントロール (イン/アウト切替対応)
+    // カメラ初期化
     // ----------------------------------------------------
     let cameraInstance = null;
-
     function initCamera(isUser) {
-      if (cameraInstance) {
-        cameraInstance.stop();
-      }
+      if (cameraInstance) cameraInstance.stop();
       facingUser = isUser;
-      // インカメラの場合は鏡像反転、外カメラの場合は通常表示
       canvasElement.style.transform = facingUser ? 'scaleX(-1)' : 'scaleX(1)';
-
       cameraInstance = new Camera(videoElement, {
-        onFrame: async () => {
-          await pose.send({ image: videoElement });
-        },
+        onFrame: async () => { await pose.send({ image: videoElement }); },
         width: 1280,
         height: 720,
         facingMode: facingUser ? 'user' : 'environment'
@@ -662,79 +566,88 @@
     });
 
     // ----------------------------------------------------
-    // 9. タブ切り替え制御
+    // モード切替
     // ----------------------------------------------------
     const tabRomBtn = document.getElementById('tabRomBtn');
     const tabJumpBtn = document.getElementById('tabJumpBtn');
-    const romPanel = document.getElementById('romPanel');
-    const jumpPanel = document.getElementById('jumpPanel');
+    const jumpFloatCard = document.getElementById('jumpFloatCard');
 
     tabRomBtn.addEventListener('click', () => {
       currentMode = 'rom';
-      tabRomBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 text-white transition-all shadow-sm';
-      tabJumpBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all';
-      romPanel.classList.remove('hidden');
-      jumpPanel.classList.add('hidden');
-      document.getElementById('canvasWrapper').className = 'hud-box rounded-2xl overflow-hidden relative aspect-video flex items-center justify-center bg-black';
+      tabRomBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-cyan-600 text-white transition-all shadow-sm';
+      tabJumpBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-400 hover:text-white transition-all';
+      jumpFloatCard.classList.add('hidden');
+      jumpFloatCard.classList.remove('flex');
       document.getElementById('alertBanner').className = 'hidden';
     });
 
     tabJumpBtn.addEventListener('click', () => {
       currentMode = 'jump';
-      tabJumpBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition-all shadow-sm';
-      tabRomBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all';
-      jumpPanel.classList.remove('hidden');
-      jumpPanel.classList.add('flex');
-      romPanel.classList.add('hidden');
+      tabJumpBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-bold bg-indigo-600 text-white transition-all shadow-sm';
+      tabRomBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-400 hover:text-white transition-all';
+      jumpFloatCard.classList.remove('hidden');
+      jumpFloatCard.classList.add('flex');
     });
 
     // ----------------------------------------------------
-    // 10. 測定開始 & 終了CSV出力
+    // 録画シャッター制御 (OnForm Shutter)
     // ----------------------------------------------------
-    const startBtn = document.getElementById('startRecBtn');
-    const stopBtn = document.getElementById('stopRecBtn');
+    const recShutterBtn = document.getElementById('recShutterBtn');
+    const shutterInner = document.getElementById('shutterInner');
     const recIndicator = document.getElementById('recIndicator');
 
-    startBtn.addEventListener('click', () => {
-      recordedDataset = [];
-      recordStartTime = performance.now();
-      isRecording = true;
+    recShutterBtn.addEventListener('click', () => {
+      isRecording = !isRecording;
+      if (isRecording) {
+        // 録画開始
+        recordedDataset = [];
+        recordStartTime = performance.now();
+        recIndicator.classList.remove('hidden');
+        recIndicator.classList.add('flex');
 
-      startBtn.disabled = true;
-      startBtn.className = 'px-3.5 py-1.5 rounded-lg bg-slate-800 text-xs font-bold text-slate-500 cursor-not-allowed';
-
-      stopBtn.disabled = false;
-      stopBtn.className = 'px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition-all shadow-md shadow-rose-900/40';
-
-      recIndicator.classList.remove('hidden');
-      recIndicator.classList.add('flex');
+        // シャッターボタンを丸から四角（停止アイコン）へ変形
+        shutterInner.className = 'w-6 h-6 rounded-md bg-rose-600 transition-all duration-200';
+        audio.playChime();
+      } else {
+        // 録画停止
+        recIndicator.classList.add('hidden');
+        recIndicator.classList.remove('flex');
+        shutterInner.className = 'w-10 h-10 rounded-full bg-rose-600 transition-all duration-200';
+        audio.playAlert();
+      }
     });
 
-    stopBtn.addEventListener('click', () => {
-      isRecording = false;
-
-      startBtn.disabled = false;
-      startBtn.className = 'px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white transition-all shadow-md shadow-emerald-900/40';
-
-      stopBtn.disabled = true;
-      stopBtn.className = 'px-3.5 py-1.5 rounded-lg bg-rose-600/30 text-xs font-bold text-slate-500 cursor-not-allowed';
-
-      recIndicator.classList.add('hidden');
-      recIndicator.classList.remove('flex');
-
-      if (recordedDataset.length > 0) {
-        let csv = 'Timestamp(s),R_Knee_Flex(deg),L_Knee_Flex(deg),R_Hip_Flex(deg),L_Hip_Flex(deg),R_Ankle(deg),L_Ankle(deg),Trunk_Lean(deg),Shoulder_Tilt(deg),Pelvis_Tilt(deg),Vert_Acc(m_s2)\n';
-        recordedDataset.forEach(r => {
-          csv += `${r.time},${r.rKnee},${r.lKnee},${r.rHip},${r.lHip},${r.rAnkle},${r.lAnkle},${r.trunk},${r.shoulderTilt},${r.pelvisTilt},${r.vertAcc}\n`;
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `biomechanics_trial_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.csv`;
-        a.click();
+    // ----------------------------------------------------
+    // CSV保存
+    // ----------------------------------------------------
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      if (!recordedDataset.length) {
+        alert('保存する測定データがありません。中央の録画ボタンを押して動作を記録してください。');
+        return;
       }
+      let csv = 'Timestamp(s),R_Knee_Flex(deg),L_Knee_Flex(deg),R_Hip_Flex(deg),L_Hip_Flex(deg),R_Ankle(deg),L_Ankle(deg),Trunk_Lean(deg),Shoulder_Tilt(deg),Pelvis_Tilt(deg),Vert_Acc(m_s2)\n';
+      recordedDataset.forEach(r => {
+        csv += `${r.time},${r.rKnee},${r.lKnee},${r.rHip},${r.lHip},${r.rAnkle},${r.lAnkle},${r.trunk},${r.shoulderTilt},${r.pelvisTilt},${r.vertAcc}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `onform_kinematics_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.csv`;
+      a.click();
+    });
+
+    // ----------------------------------------------------
+    // 関節HUDドロワー開閉
+    // ----------------------------------------------------
+    const jointDrawer = document.getElementById('jointDrawer');
+    document.getElementById('openJointMenuBtn').addEventListener('click', () => {
+      jointDrawer.classList.remove('hidden');
+      jointDrawer.classList.add('flex');
+    });
+    document.getElementById('closeJointMenuBtn').addEventListener('click', () => {
+      jointDrawer.classList.add('hidden');
+      jointDrawer.classList.remove('flex');
     });
   </script>
 </body>
