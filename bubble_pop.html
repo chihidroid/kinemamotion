@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ぽこぽこバブル - リザルト詳細エディション</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #0f172a;
+      overflow: hidden;
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+      user-select: none;
+    }
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <video id="webcam" playsinline style="display:none;"></video>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const video = document.getElementById('webcam');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 画面・ゲーム状態
+    let state = 'MODE_SELECT';
+    let gameMode = 'SINGLE'; // 'SINGLE' or 'MULTI'
+
+    let timeLeft = 30;
+    let timerInterval = null;
+
+    // スコア＆詳細カウント管理
+    const statsSingle = { bubble: 0, fish: 0, bomb: 0, total: 0 };
+    const statsP1 = { bubble: 0, fish: 0, bomb: 0, total: 0 };
+    const statsP2 = { bubble: 0, fish: 0, bomb: 0, total: 0 };
+
+    const holdProgressMap = {};
+    const bubbles = [];
+    const particles = [];
+
+    const NOTES = [
+      { note: 'C5', freq: 523.25, color: '#ff595e' },
+      { note: 'D5', freq: 587.33, color: '#ff924c' },
+      { note: 'E5', freq: 659.25, color: '#ffca3a' },
+      { note: 'F5', freq: 698.46, color: '#8ac926' },
+      { note: 'G5', freq: 783.99, color: '#1982c4' },
+      { note: 'A5', freq: 880.00, color: '#6a4c93' },
+      { note: 'C6', freq: 1046.50, color: '#f72585' }
+    ];
+
+    // Web Audio API
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playSound(freq, duration = 0.35, type = 'sine') {
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.7, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playStartSound() {
+      playSound(523.25, 0.15);
+      setTimeout(() => playSound(659.25, 0.15), 100);
+      setTimeout(() => playSound(783.99, 0.35), 200);
+    }
+
+    function playFinishSound() {
+      playSound(783.99, 0.25);
+      setTimeout(() => playSound(523.25, 0.5), 200);
+    }
+
+    function playBonusSound() {
+      playSound(1046.50, 0.1, 'triangle');
+      setTimeout(() => playSound(1318.51, 0.25, 'triangle'), 80);
+    }
+
+    function playBombSound() {
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.35);
+      gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+    }
+
+    function resetStats(obj) {
+      obj.bubble = 0;
+      obj.fish = 0;
+      obj.bomb = 0;
+      obj.total = 0;
+    }
+
+    function startGame() {
+      playStartSound();
+      state = 'PLAYING';
+      resetStats(statsSingle);
+      resetStats(statsP1);
+      resetStats(statsP2);
+      timeLeft = 30;
+      bubbles.length = 0;
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          state = (gameMode === 'SINGLE') ? 'RESULT_SINGLE' : 'RESULT_MULTI';
+          playFinishSound();
+        }
+      }, 1000);
+    }
+
+    // オブジェクトの属性抽選（スピードを強化）
+    function createEntityConfig() {
+      const rand = Math.random();
+      if (rand < 0.15) {
+        // 【15%】すばやい黄金魚（素早く駆け抜ける）
+        return {
+          type: 'FISH',
+          radius: 36,
+          speed: Math.random() * 3.0 + 8.5, // 超高速（8.5〜11.5）
+          color: '#ffbe0b',
+          points: 30
+        };
+      } else if (rand < 0.30) {
+        // 【15%】バクダン
+        return {
+          type: 'BOMB',
+          radius: 44,
+          speed: Math.random() * 2.0 + 4.2, // スピードアップ（4.2〜6.2）
+          color: '#1e293b',
+          points: -20
+        };
+      } else {
+        // 【70%】通常バブル
+        const note = NOTES[Math.floor(Math.random() * NOTES.length)];
+        return {
+          type: 'BUBBLE',
+          radius: 46,
+          speed: Math.random() * 2.2 + 4.5, // スピードアップ（4.5〜6.7）
+          color: note.color,
+          freq: note.freq,
+          points: 10
+        };
+      }
+    }
+
+    function spawnBubble() {
+      if (state !== 'PLAYING') return;
+
+      if (gameMode === 'MULTI') {
+        if (bubbles.length < 10) {
+          const config = createEntityConfig();
+          const sharedSpeed = config.speed;
+
+          const leftMin = canvas.width * 0.10;
+          const leftMax = canvas.width * 0.40;
+          const leftX = Math.random() * (leftMax - leftMin) + leftMin;
+
+          const rightMin = canvas.width * 0.60;
+          const rightMax = canvas.width * 0.90;
+          const rightX = Math.random() * (rightMax - rightMin) + rightMin;
+
+          bubbles.push({
+            x: leftX,
+            y: canvas.height + 60,
+            oscillation: Math.random() * Math.PI * 2,
+            ...config,
+            speed: sharedSpeed
+          });
+
+          bubbles.push({
+            x: rightX,
+            y: canvas.height + 60,
+            oscillation: Math.random() * Math.PI * 2,
+            ...config,
+            speed: sharedSpeed
+          });
+        }
+      } else {
+        if (bubbles.length < 7) {
+          const config = createEntityConfig();
+          bubbles.push({
+            x: Math.random() * (canvas.width * 0.8) + (canvas.width * 0.1),
+            y: canvas.height + 60,
+            oscillation: Math.random() * Math.PI * 2,
+            ...config
+          });
+        }
+      }
+    }
+    // 出現頻度も少し早めてテンポアップ（680ms間隔）
+    setInterval(spawnBubble, 680);
+
+    function createBurst(x, y, color) {
+      for (let i = 0; i < 16; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6 + 2;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: Math.random() * 6 + 3,
+          alpha: 1,
+          color: color
+        });
+      }
+    }
+
+    // ホールドボタン処理
+    function handleHoldButton(id, text, subText, x, y, width, height, bgColor, hands, onTrigger) {
+      const isHovered = hands.some(h => 
+        h.x >= x - width / 2 && h.x <= x + width / 2 &&
+        h.y >= y - height / 2 && h.y <= y + height / 2
+      );
+
+      if (!holdProgressMap[id]) holdProgressMap[id] = 0;
+
+      if (isHovered) {
+        holdProgressMap[id] += 0.04;
+        if (holdProgressMap[id] >= 1.0) {
+          holdProgressMap[id] = 0;
+          onTrigger();
+          return;
+        }
+      } else {
+        holdProgressMap[id] = Math.max(0, holdProgressMap[id] - 0.05);
+      }
+
+      const p = holdProgressMap[id];
+
+      ctx.save();
+      ctx.fillStyle = bgColor;
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.roundRect(x - width / 2, y - height / 2, width, height, 22);
+      ctx.fill();
+
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(text, x, y - (subText ? 12 : 0));
+
+      if (subText) {
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillStyle = '#fffa65';
+        ctx.fillText(subText, x, y + 20);
+      }
+
+      if (p > 0) {
+        ctx.strokeStyle = '#00f5d4';
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        const startAngle = -Math.PI / 2;
+        ctx.arc(x, y, Math.max(width, height) / 1.7, startAngle, startAngle + (Math.PI * 2 * p));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 詳細リザルト内訳カードの描画関数
+    function drawDetailCard(title, titleColor, stats, x, y, width, height) {
+      ctx.save();
+      // パネル背景
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.beginPath();
+      ctx.roundRect(x - width / 2, y - height / 2, width, height, 20);
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = titleColor;
+      ctx.stroke();
+
+      // タイトル
+      ctx.fillStyle = titleColor;
+      ctx.font = 'bold 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title, x, y - height / 2 + 45);
+
+      // 内訳リスト
+      const startY = y - height / 2 + 100;
+      const rowGap = 38;
+
+      ctx.font = '22px sans-serif';
+      ctx.textAlign = 'left';
+
+      // 🫧 バブル
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillText(`🫧 バブル: ${stats.bubble} こ`, x - width / 2 + 40, startY);
+      ctx.textAlign = 'right';
+      ctx.fillText(`+${stats.bubble * 10} 点`, x + width / 2 - 40, startY);
+
+      // 🐟 黄金魚
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffbe0b';
+      ctx.fillText(`🐟 さかな: ${stats.fish} ひき`, x - width / 2 + 40, startY + rowGap);
+      ctx.textAlign = 'right';
+      ctx.fillText(`+${stats.fish * 30} 点`, x + width / 2 - 40, startY + rowGap);
+
+      // 💣 爆弾
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#f87171';
+      ctx.fillText(`💣 バクダン: ${stats.bomb} こ`, x - width / 2 + 40, startY + rowGap * 2);
+      ctx.textAlign = 'right';
+      ctx.fillText(`-${stats.bomb * 20} 点`, x + width / 2 - 40, startY + rowGap * 2);
+
+      // 区切り線
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - width / 2 + 30, startY + rowGap * 2 + 25);
+      ctx.lineTo(x + width / 2 - 30, startY + rowGap * 2 + 25);
+      ctx.stroke();
+
+      // 合計得点
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 36px sans-serif';
+      ctx.fillText(`ごうけい: ${stats.total} 点`, x, startY + rowGap * 2 + 75);
+
+      ctx.restore();
+    }
+
+    // メイン描画ループ
+    function onResults(results) {
+      ctx.save();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const hands = [];
+      if (results.multiHandLandmarks) {
+        results.multiHandLandmarks.forEach(lm => {
+          const px = (1 - (lm[0].x + lm[5].x) / 2) * canvas.width;
+          const py = ((lm[0].y + lm[5].y) / 2) * canvas.height;
+          const player = px < canvas.width / 2 ? 'P1' : 'P2';
+          hands.push({ x: px, y: py, player: player });
+        });
+      }
+
+      // 1. モード選択
+      if (state === 'MODE_SELECT') {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 50px sans-serif';
+        ctx.fillText('🫧 ぽこぽこバブル 🫧', canvas.width / 2, canvas.height * 0.28);
+
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillStyle = '#67e8f9';
+        ctx.fillText('あそぶモードに てをかざしてね！', canvas.width / 2, canvas.height * 0.38);
+        ctx.restore();
+
+        handleHoldButton(
+          'btn_select_single', '1にんであそぶ', '✋ てをかざす',
+          canvas.width * 0.32, canvas.height * 0.65, 300, 110, '#f72585', hands,
+          () => { gameMode = 'SINGLE'; state = 'READY_SINGLE'; }
+        );
+
+        handleHoldButton(
+          'btn_select_multi', '2にんでバトル', '✋ てをかざす',
+          canvas.width * 0.68, canvas.height * 0.65, 300, 110, '#4361ee', hands,
+          () => { gameMode = 'MULTI'; state = 'READY_MULTI'; }
+        );
+      }
+
+     // -----------------------------
+      // 2. 1人プレイ準備画面
+      // -----------------------------
+      else if (state === 'READY_SINGLE') {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 44px sans-serif';
+        ctx.fillText('1にんプレイ モード', canvas.width / 2, canvas.height * 0.28);
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillStyle = '#facc15';
+        ctx.fillText('30びょうで たくさんあわをわろう！', canvas.width / 2, canvas.height * 0.38);
+        ctx.restore();
+
+        // スタートボタン（左側）
+        handleHoldButton(
+          'btn_ready_single', 'スタート！', '✋ てをかざして開始',
+          canvas.width * 0.38, canvas.height * 0.65, 300, 110, '#ff0055', hands,
+          () => { startGame(); }
+        );
+
+        // もどるボタン（右側）
+        handleHoldButton(
+          'btn_back_single', 'もどる', '✋ モード選択へ',
+          canvas.width * 0.62, canvas.height * 0.65, 260, 110, '#64748b', hands,
+          () => { state = 'MODE_SELECT'; }
+        );
+      }
+
+      // -----------------------------
+      // 3. 2人プレイ準備画面
+      // -----------------------------
+      else if (state === 'READY_MULTI') {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.setLineDash([10, 10]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillStyle = '#ff595e';
+        ctx.fillText('🔴 あかチーム（P1）', canvas.width * 0.25, canvas.height * 0.25);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('🔵 あおチーム（P2）', canvas.width * 0.75, canvas.height * 0.25);
+        ctx.restore();
+
+        // スタートボタン（中央やや上）
+        handleHoldButton(
+          'btn_ready_multi', 'スタート！', '✋ ふたりでじゅんびOK？',
+          canvas.width / 2, canvas.height * 0.58, 340, 105, '#4361ee', hands,
+          () => { startGame(); }
+        );
+
+        // もどるボタン（中央下）
+        handleHoldButton(
+          'btn_back_multi', 'もどる', '✋ モード選択へ',
+          canvas.width / 2, canvas.height * 0.78, 260, 90, '#64748b', hands,
+          () => { state = 'MODE_SELECT'; }
+        );
+      }
+
+      // 4. プレイ中
+      else if (state === 'PLAYING') {
+        if (gameMode === 'MULTI') {
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.setLineDash([10, 10]);
+          ctx.beginPath();
+          ctx.moveTo(canvas.width / 2, 0);
+          ctx.lineTo(canvas.width / 2, canvas.height);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.save();
+          ctx.font = 'bold 34px sans-serif';
+          ctx.fillStyle = '#ff595e';
+          ctx.fillText(`🔴 P1: ${statsP1.total}点`, 40, 60);
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText(`🔵 P2: ${statsP2.total}点`, canvas.width - 40, 60);
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.font = 'bold 36px sans-serif';
+          ctx.fillStyle = '#facc15';
+          ctx.fillText(`🌟 SCORE: ${statsSingle.total}`, 40, 60);
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 42px sans-serif';
+        ctx.fillStyle = timeLeft <= 5 ? '#ff4444' : '#facc15';
+        ctx.fillText(`⏱ ${timeLeft}`, canvas.width / 2, 60);
+        ctx.restore();
+
+        // 当たり判定・集計
+        for (let i = bubbles.length - 1; i >= 0; i--) {
+          const b = bubbles[i];
+          b.y -= b.speed;
+          b.oscillation += 0.05;
+          const drawX = b.x + Math.sin(b.oscillation) * 18;
+
+          let poppedBy = null;
+          for (const h of hands) {
+            const dist = Math.hypot(h.x - drawX, h.y - b.y);
+            if (dist < b.radius + 35) {
+              poppedBy = h.player;
+              break;
+            }
+          }
+
+          if (poppedBy) {
+            if (b.type === 'FISH') {
+              playBonusSound();
+              createBurst(drawX, b.y, '#ffd166');
+            } else if (b.type === 'BOMB') {
+              playBombSound();
+              createBurst(drawX, b.y, '#ef4444');
+            } else {
+              playSound(b.freq);
+              createBurst(drawX, b.y, b.color);
+            }
+
+            // 個数と点数を詳細記録
+            const targetStats = (gameMode === 'SINGLE') ? statsSingle : (poppedBy === 'P1' ? statsP1 : statsP2);
+            if (b.type === 'FISH') targetStats.fish++;
+            else if (b.type === 'BOMB') targetStats.bomb++;
+            else targetStats.bubble++;
+
+            targetStats.total = Math.max(0, targetStats.total + b.points);
+
+            bubbles.splice(i, 1);
+            continue;
+          }
+
+          if (b.y < -b.radius) {
+            bubbles.splice(i, 1);
+            continue;
+          }
+
+          // 描画
+          ctx.save();
+          if (b.type === 'FISH') {
+            ctx.translate(drawX, b.y);
+            ctx.fillStyle = '#ffbe0b';
+            ctx.beginPath();
+            ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.font = '32px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐟', 0, 0);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.fillText('+30', 0, -b.radius - 8);
+          } else if (b.type === 'BOMB') {
+            ctx.translate(drawX, b.y);
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            ctx.font = '32px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('💣', 0, 2);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.fillText('-20', 0, -b.radius - 8);
+          } else {
+            ctx.beginPath();
+            ctx.arc(drawX, b.y, b.radius, 0, Math.PI * 2);
+            ctx.fillStyle = b.color;
+            ctx.globalAlpha = 0.85;
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(drawX - b.radius * 0.32, b.y - b.radius * 0.32, b.radius * 0.28, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      // 5. 1人プレイリザルト画面（詳細カード付き）
+      else if (state === 'RESULT_SINGLE') {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 40px sans-serif';
+        ctx.fillStyle = '#facc15';
+        ctx.fillText('タイムアップ！ けっかはっぴょう', canvas.width / 2, canvas.height * 0.12);
+        ctx.restore();
+
+        // 詳細カード（中央）
+        drawDetailCard('🌟 けっかスコア', '#facc15', statsSingle, canvas.width / 2, canvas.height * 0.45, 420, 320);
+
+        // 下部ボタン
+        handleHoldButton(
+          'btn_single_retry', 'もういちど！', '✋ てをかざす',
+          canvas.width * 0.35, canvas.height * 0.82, 280, 95, '#06d6a0', hands,
+          () => { startGame(); }
+        );
+
+        handleHoldButton(
+          'btn_single_menu', 'スタートへ', '✋ てをかざす',
+          canvas.width * 0.65, canvas.height * 0.82, 280, 95, '#64748b', hands,
+          () => { state = 'MODE_SELECT'; }
+        );
+      }
+
+      // 6. 2人プレイリザルト画面（左右に詳細カード＆勝敗）
+      else if (state === 'RESULT_MULTI') {
+        // 中央仕切り
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height * 0.72);
+        ctx.stroke();
+
+        // 勝敗バナー
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 42px sans-serif';
+        if (statsP1.total > statsP2.total) {
+          ctx.fillStyle = '#ff595e';
+          ctx.fillText('👑 P1（あかチーム）のかち！ 👑', canvas.width / 2, canvas.height * 0.12);
+        } else if (statsP2.total > statsP1.total) {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillText('👑 P2（あおチーム）のかち！ 👑', canvas.width / 2, canvas.height * 0.12);
+        } else {
+          ctx.fillStyle = '#facc15';
+          ctx.fillText('🤝 ひきわけ！ふたりともすごい！ 🤝', canvas.width / 2, canvas.height * 0.12);
+        }
+        ctx.restore();
+
+        // 左側：P1（赤）詳細カード
+        drawDetailCard('🔴 P1（あかチーム）', '#ff595e', statsP1, canvas.width * 0.27, canvas.height * 0.44, 380, 310);
+
+        // 右側：P2（青）詳細カード
+        drawDetailCard('🔵 P2（あおチーム）', '#38bdf8', statsP2, canvas.width * 0.73, canvas.height * 0.44, 380, 310);
+
+        // 下部中央：共通ボタン
+        handleHoldButton(
+          'btn_multi_retry', 'もういちど！', '✋ てをかざす',
+          canvas.width * 0.38, canvas.height * 0.84, 280, 95, '#06d6a0', hands,
+          () => { startGame(); }
+        );
+
+        handleHoldButton(
+          'btn_multi_menu', 'スタートへ', '✋ てをかざす',
+          canvas.width * 0.62, canvas.height * 0.84, 280, 95, '#64748b', hands,
+          () => { state = 'MODE_SELECT'; }
+        );
+      }
+
+      // パーティクル描画
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.035;
+
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 手のマーカー描画
+      hands.forEach(h => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 30, 0, Math.PI * 2);
+
+        if (gameMode === 'SINGLE' && state === 'PLAYING') {
+          ctx.fillStyle = 'rgba(250, 204, 21, 0.7)';
+          ctx.shadowColor = '#facc15';
+        } else {
+          ctx.fillStyle = h.player === 'P1' ? 'rgba(255, 89, 94, 0.7)' : 'rgba(56, 189, 248, 0.7)';
+          ctx.shadowColor = h.player === 'P1' ? '#ff595e' : '#38bdf8';
+        }
+
+        ctx.shadowBlur = 15;
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(gameMode === 'SINGLE' && state === 'PLAYING' ? '★' : h.player, h.x, h.y);
+        ctx.restore();
+      });
+    }
+
+    // MediaPipe Hands 初期化
+    const handsModel = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    handsModel.setOptions({
+      maxNumHands: 4,
+      modelComplexity: 0,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    handsModel.onResults(onResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await handsModel.send({ image: video });
+      },
+      width: 1280,
+      height: 720
+    });
+
+    window.addEventListener('click', () => {
+      initAudio();
+    }, { once: true });
+
+    camera.start();
+  </script>
+</body>
+</html>
