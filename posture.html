@@ -12,7 +12,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
     body { background-color: #000; color: #f8fafc; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
@@ -82,98 +81,77 @@
   </footer>
 
   <!-- ========================================== -->
-  <!-- A4姿勢カルテ レポートテンプレート (縮尺固定・歪みゼロ仕様)[cite: 7, 10] -->
+  <!-- 撮影後プレビュー & カウンセリングモーダル    -->
   <!-- ========================================== -->
-  <div id="reportContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; min-height: 1123px; background: #ffffff; color: #0f172a; padding: 44px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-sizing: border-box;">
-    <!-- ヘッダー -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 3px solid #059669; padding-bottom: 12px;">
-      <div>
-        <div style="display: inline-block; background: #059669; color: #ffffff; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;">STATIC POSTURE ASSESSMENT</div>
-        <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">AI静止立位・姿勢アライメントカルテ</h1>
-        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">百武整形外科病院 スポーツ事業部 / Posture AI Engine[cite: 2, 7]</p>
-      </div>
-      <div style="text-align: right; font-size: 11px; color: #475569; font-family: monospace;">
-        <p style="margin: 0;">測定日: <span id="repDate" style="font-weight: bold; color: #0f172a;">-</span></p>
-        <p style="margin: 2px 0 0 0;">ID: PA-<span id="repId">001</span></p>
-      </div>
-    </div>
-
-    <!-- 写真 2面レイアウト（固定アスペクト比コンテナで歪みを完全防止）[cite: 7] -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px;">
-      <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; background: #f8fafc; display: flex; flex-direction: column; align-items: center;">
-        <div style="width: 100%; display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #059669;">正面立位（前額面）[cite: 7]</span>
-          <span style="font-size: 10px; color: #64748b; font-family: monospace;">Frontal View</span>
+  <div id="previewModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex-col justify-between overflow-y-auto p-4 safe-top safe-bottom">
+    <div class="w-full max-w-xl mx-auto bg-slate-900 border border-slate-700 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
+      <!-- プレビューヘッダー -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-emerald-400 font-mono">POSTURE RESULT</span>
+          <h2 class="text-base font-bold text-white">姿勢アライメント診断結果</h2>
         </div>
-        <!-- 固定高さ360px、背景黒のステージで原寸縦横比をキープ -->
-        <div style="width: 100%; height: 360px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-          <img id="repFrontImg" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block;" />
+        <button id="closePreviewBtn" class="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800">
+          閉じる
+        </button>
+      </div>
+
+      <!-- 写真 2面プレビュー（画像本来のアスペクト比を100%保持） -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col items-center">
+          <span class="text-[10px] font-bold text-emerald-400 mb-1.5">正面立位</span>
+          <img id="prevFrontImg" class="w-full h-auto max-h-56 object-contain rounded-lg border border-slate-800 bg-black" />
+        </div>
+        <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col items-center">
+          <span class="text-[10px] font-bold text-emerald-400 mb-1.5">側面立位</span>
+          <img id="prevSagittalImg" class="w-full h-auto max-h-56 object-contain rounded-lg border border-slate-800 bg-black" />
         </div>
       </div>
 
-      <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; background: #f8fafc; display: flex; flex-direction: column; align-items: center;">
-        <div style="width: 100%; display: flex; justify-content: space-between; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #059669;">側面立位（矢状面）[cite: 7]</span>
-          <span style="font-size: 10px; color: #64748b; font-family: monospace;">Sagittal View</span>
+      <!-- 診断数値テーブル -->
+      <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden text-xs">
+        <div class="grid grid-cols-3 p-2.5 bg-slate-900/60 font-bold text-slate-400 border-b border-slate-800">
+          <span>評価項目</span>
+          <span class="text-center">測定値</span>
+          <span class="text-right">判定</span>
         </div>
-        <div style="width: 100%; height: 360px; background: #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-          <img id="repSagittalImg" style="max-width: 100%; max-height: 100%; width: auto; height: auto; display: block;" />
+        <div class="grid grid-cols-3 p-2.5 border-b border-slate-800/60">
+          <span class="text-slate-300">頭部側方傾斜</span>
+          <span id="prevHeadVal" class="text-center font-mono font-bold text-white">-</span>
+          <span id="prevHeadEval" class="text-right font-bold text-emerald-400">良好</span>
+        </div>
+        <div class="grid grid-cols-3 p-2.5 border-b border-slate-800/60">
+          <span class="text-slate-300">肩峰 水平傾斜</span>
+          <span id="prevShoulderVal" class="text-center font-mono font-bold text-white">-</span>
+          <span id="prevShoulderEval" class="text-right font-bold text-emerald-400">良好</span>
+        </div>
+        <div class="grid grid-cols-3 p-2.5 border-b border-slate-800/60">
+          <span class="text-slate-300">骨盤 水平傾斜</span>
+          <span id="prevPelvisVal" class="text-center font-mono font-bold text-white">-</span>
+          <span id="prevPelvisEval" class="text-right font-bold text-emerald-400">良好</span>
+        </div>
+        <div class="grid grid-cols-3 p-2.5">
+          <span class="text-slate-300">耳-肩 前方偏位</span>
+          <span id="prevForwardVal" class="text-center font-mono font-bold text-white">-</span>
+          <span id="prevForwardEval" class="text-right font-bold text-emerald-400">適正</span>
         </div>
       </div>
-    </div>
 
-    <!-- 定量評価テーブル[cite: 7] -->
-    <div style="margin-top: 20px;">
-      <h3 style="font-size: 13px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; border-left: 4px solid #059669; padding-left: 8px;">身体各部位の歪み・傾斜定量分析[cite: 7]</h3>
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-        <thead>
-          <tr style="background: #f1f5f9; border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
-            <th style="padding: 8px 12px; text-align: left;">評価指標</th>
-            <th style="padding: 8px 12px; text-align: center;">測定値</th>
-            <th style="padding: 8px 12px; text-align: center;">基準値（理想）</th>
-            <th style="padding: 8px 12px; text-align: center;">歪み判定</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px 12px; font-weight: 600;">頭部側方傾斜角 (Head Tilt)</td>
-            <td id="repHeadTilt" style="padding: 8px 12px; text-align: center; font-family: monospace; font-weight: bold;">-</td>
-            <td style="padding: 8px 12px; text-align: center; color: #64748b;">0.0° 〜 1.5°</td>
-            <td id="repHeadEval" style="padding: 8px 12px; text-align: center; font-weight: 600;">良好</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px 12px; font-weight: 600;">肩峰 水平傾斜角 (Shoulder Tilt)</td>
-            <td id="repShoulderTilt" style="padding: 8px 12px; text-align: center; font-family: monospace; font-weight: bold;">-</td>
-            <td style="padding: 8px 12px; text-align: center; color: #64748b;">0.0° 〜 2.0°</td>
-            <td id="repShoulderEval" style="padding: 8px 12px; text-align: center; font-weight: 600;">良好</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px 12px; font-weight: 600;">骨盤 水平傾斜角 (Pelvis Tilt)</td>
-            <td id="repPelvisTilt" style="padding: 8px 12px; text-align: center; font-family: monospace; font-weight: bold;">-</td>
-            <td style="padding: 8px 12px; text-align: center; color: #64748b;">0.0° 〜 2.0°</td>
-            <td id="repPelvisEval" style="padding: 8px 12px; text-align: center; font-weight: 600;">良好</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px 12px; font-weight: 600;">頭部 前方突出偏位 (Forward Head)</td>
-            <td id="repForwardHead" style="padding: 8px 12px; text-align: center; font-family: monospace; font-weight: bold;">-</td>
-            <td style="padding: 8px 12px; text-align: center; color: #64748b;">耳垂-肩峰同軸</td>
-            <td id="repForwardHeadEval" style="padding: 8px 12px; text-align: center; font-weight: 600;">適正</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #cbd5e1; background: #fafafa;">
-            <td style="padding: 8px 12px; font-weight: 600;">総合姿勢タイプ分類</td>
-            <td colspan="3" id="repPostureType" style="padding: 8px 12px; text-align: center; font-weight: bold; color: #059669; font-size: 12px;">理想的アライメント (Good Alignment)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <!-- 総合評価 -->
+      <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between">
+        <span class="text-xs text-slate-300">総合姿勢タイプ</span>
+        <span id="prevTypeVal" class="text-xs font-bold text-emerald-400">理想的アライメント</span>
+      </div>
 
-    <!-- 所見欄[cite: 8] -->
-    <div style="margin-top: 20px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #ffffff;">
-      <h4 style="font-size: 11px; font-weight: 700; color: #64748b; margin: 0 0 6px 0;">理学療法士 / 担当トレーナー 所見・指導方針[cite: 8]</h4>
-      <div style="min-height: 75px; border-bottom: 1px dashed #cbd5e1;"></div>
-      <div style="display: flex; justify-content: flex-end; gap: 32px; margin-top: 10px; font-size: 11px; color: #64748b;">
-        <span>担当PT: ____________________[cite: 8]</span>
-        <span>確認医師: ____________________[cite: 8]</span>
+      <!-- アクションボタン -->
+      <div class="flex items-center gap-3 pt-2">
+        <button id="retakeBtn" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all">
+          撮り直す
+        </button>
+        <button id="downloadPdfBtn" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          PDFカルテを出力・保存
+        </button>
       </div>
     </div>
   </div>
@@ -220,7 +198,8 @@
       headTilt: 0,
       shoulderTilt: 0,
       pelvisTilt: 0,
-      forwardHeadCm: 0
+      forwardHeadCm: 0,
+      postureType: '理想的アライメント'
     };
 
     const pose = new Pose({
@@ -287,7 +266,7 @@
             canvasCtx.stroke();
           });
 
-          drawTag(ear.x * w + 15, ear.y * h, `耳-肩偏位: ${Math.abs(forwardHeadDist).toFixed(1)}cm`);
+          drawTag(ear.x * w + 15, ear.y * h, `耳-肩: ${Math.abs(forwardHeadDist).toFixed(1)}cm`);
         }
       }
     });
@@ -375,7 +354,7 @@
     });
 
     // シャッター処理
-    document.getElementById('shutterBtn').addEventListener('click', async () => {
+    document.getElementById('shutterBtn').addEventListener('click', () => {
       audio.shutterSound();
       const photo = canvasElement.toDataURL('image/jpeg', 0.95);
 
@@ -387,74 +366,174 @@
         document.getElementById('guideInstruction').innerText = '被検者は真横（側面）を向いて立ってください';
       } else {
         sagittalSnapshot = photo;
-        await generatePosturePdf();
-        alert('姿勢アライメントカルテ（PDF）を保存しました。');
-        resetPostureSession();
+        showPreviewModal(); // 即保存ではなくプレビューを表示
       }
     });
 
-    // A4 PDF生成エンジン（歪み防止・画像完全同期版）
-    async function generatePosturePdf() {
-      document.getElementById('repDate').innerText = new Date().toLocaleDateString('ja-JP');
-      document.getElementById('repId').innerText = Math.floor(1000 + Math.random() * 9000);
+    // プレビューモーダルの表示
+    function showPreviewModal() {
+      document.getElementById('prevFrontImg').src = frontSnapshot;
+      document.getElementById('prevSagittalImg').src = sagittalSnapshot;
 
-      const frontImgEl = document.getElementById('repFrontImg');
-      const sagImgEl = document.getElementById('repSagittalImg');
+      document.getElementById('prevHeadVal').innerText = `${currentMetrics.headTilt.toFixed(1)}°`;
+      document.getElementById('prevShoulderVal').innerText = `${currentMetrics.shoulderTilt.toFixed(1)}°`;
+      document.getElementById('prevPelvisVal').innerText = `${currentMetrics.pelvisTilt.toFixed(1)}°`;
+      document.getElementById('prevForwardVal').innerText = `${Math.abs(currentMetrics.forwardHeadCm).toFixed(1)} cm`;
 
-      // 画像の完全ロードを保証
-      const loadImg = (el, src) => new Promise((resolve) => {
-        el.onload = () => resolve();
-        el.src = src;
-      });
+      document.getElementById('prevHeadEval').innerText = currentMetrics.headTilt <= 1.5 ? '良好' : '要注意';
+      document.getElementById('prevHeadEval').className = currentMetrics.headTilt <= 1.5 ? 'text-right font-bold text-emerald-400' : 'text-right font-bold text-amber-400';
 
-      await Promise.all([
-        loadImg(frontImgEl, frontSnapshot),
-        loadImg(sagImgEl, sagittalSnapshot)
-      ]);
+      document.getElementById('prevShoulderEval').innerText = currentMetrics.shoulderTilt <= 2.0 ? '水平' : '左右差';
+      document.getElementById('prevShoulderEval').className = currentMetrics.shoulderTilt <= 2.0 ? 'text-right font-bold text-emerald-400' : 'text-right font-bold text-amber-400';
 
-      document.getElementById('repHeadTilt').innerText = `${currentMetrics.headTilt.toFixed(1)}°`;
-      document.getElementById('repShoulderTilt').innerText = `${currentMetrics.shoulderTilt.toFixed(1)}°`;
-      document.getElementById('repPelvisTilt').innerText = `${currentMetrics.pelvisTilt.toFixed(1)}°`;
-      document.getElementById('repForwardHead').innerText = `${Math.abs(currentMetrics.forwardHeadCm).toFixed(1)} cm`;
+      document.getElementById('prevPelvisEval').innerText = currentMetrics.pelvisTilt <= 2.0 ? '水平' : '傾斜';
+      document.getElementById('prevPelvisEval').className = currentMetrics.pelvisTilt <= 2.0 ? 'text-right font-bold text-emerald-400' : 'text-right font-bold text-amber-400';
 
-      document.getElementById('repHeadEval').innerText = currentMetrics.headTilt <= 1.5 ? '良好' : '要注意';
-      document.getElementById('repHeadEval').style.color = currentMetrics.headTilt <= 1.5 ? '#16a34a' : '#d97706';
-
-      document.getElementById('repShoulderEval').innerText = currentMetrics.shoulderTilt <= 2.0 ? '水平' : '左右差あり';
-      document.getElementById('repShoulderEval').style.color = currentMetrics.shoulderTilt <= 2.0 ? '#16a34a' : '#d97706';
-
-      document.getElementById('repPelvisEval').innerText = currentMetrics.pelvisTilt <= 2.0 ? '水平' : '傾斜あり';
-      document.getElementById('repPelvisEval').style.color = currentMetrics.pelvisTilt <= 2.0 ? '#16a34a' : '#d97706';
-
-      const typeEl = document.getElementById('repPostureType');
+      const typeEl = document.getElementById('prevTypeVal');
       if (Math.abs(currentMetrics.forwardHeadCm) > 4.0) {
-        typeEl.innerText = '頭部前方突出・スウェイバック傾向';
-        typeEl.style.color = '#dc2626';
+        currentMetrics.postureType = '頭部前方突出・スウェイバック傾向';
+        typeEl.innerText = currentMetrics.postureType;
+        typeEl.className = 'text-xs font-bold text-rose-400';
       } else if (currentMetrics.shoulderTilt > 2.5 || currentMetrics.pelvisTilt > 2.5) {
-        typeEl.innerText = '前額面側方アライメント非対称型';
-        typeEl.style.color = '#d97706';
+        currentMetrics.postureType = '前額面側方アライメント非対称型';
+        typeEl.innerText = currentMetrics.postureType;
+        typeEl.className = 'text-xs font-bold text-amber-400';
       } else {
-        typeEl.innerText = '理想的アライメント (Good Alignment)';
-        typeEl.style.color = '#059669';
+        currentMetrics.postureType = '理想的アライメント';
+        typeEl.innerText = currentMetrics.postureType;
+        typeEl.className = 'text-xs font-bold text-emerald-400';
       }
 
-      // レンダリング実行
-      const container = document.getElementById('reportContainer');
-      const canvas = await html2canvas(container, { 
-        scale: 2.0, // 高精細レンダリング
-        useCORS: true,
-        logging: false
-      });
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const modal = document.getElementById('previewModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
 
+    // ★ ピュアjsPDF直接描画エンジン（アスペクト比を100%保持・歪みゼロ）
+    async function exportPurePdf() {
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'pt', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', 'a4'); // A4: 210mm x 297mm
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      // ヘッダー装飾
+      pdf.setFillColor(5, 150, 105);
+      pdf.rect(15, 15, 180, 2, 'F');
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(5, 150, 105);
+      pdf.text('STATIC POSTURE ASSESSMENT', 15, 23);
+
+      pdf.setFontSize(16);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('AI Posture Alignment Report', 15, 30);
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('Hyakutake Orthopedic Hospital Sports Division', 15, 35);[cite: 2, 7]
+      pdf.text(`Date: ${new Date().toLocaleDateString('ja-JP')}  |  ID: PA-${Math.floor(1000 + Math.random() * 9000)}`, 130, 35);
+
+      // 画像のピクセルサイズを取得して縦横比を完全固定で配置
+      const getImageDimensions = (src) => new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.width, h: img.height });
+        img.src = src;
+      });
+
+      const frontDim = await getImageDimensions(frontSnapshot);
+      const sagDim = await getImageDimensions(sagittalSnapshot);
+
+      // 写真エリアの最大枠（幅85mm、高さ110mm）
+      const maxBoxW = 85;
+      const maxBoxH = 110;
+
+      // 前額面写真の縮尺計算
+      const frontRatio = Math.min(maxBoxW / frontDim.w, maxBoxH / frontDim.h);
+      const fW = frontDim.w * frontRatio;
+      const fH = frontDim.h * frontRatio;
+      const fX = 15 + (maxBoxW - fW) / 2;
+      const fY = 42 + (maxBoxH - fH) / 2;
+
+      // 矢状面写真の縮尺計算
+      const sagRatio = Math.min(maxBoxW / sagDim.w, maxBoxH / sagDim.h);
+      const sW = sagDim.w * sagRatio;
+      const sH = sagDim.h * sagRatio;
+      const sX = 110 + (maxBoxW - sW) / 2;
+      const sY = 42 + (maxBoxH - sH) / 2;
+
+      // 背景枠
+      pdf.setFillColor(248, 250, 252);
+      pdf.roundedRect(15, 42, maxBoxW, maxBoxH, 2, 2, 'F');
+      pdf.roundedRect(110, 42, maxBoxW, maxBoxH, 2, 2, 'F');
+
+      // 画像を本来の比率のまま埋め込み（歪みゼロ）[cite: 7]
+      pdf.addImage(frontSnapshot, 'JPEG', fX, fY, fW, fH);
+      pdf.addImage(sagittalSnapshot, 'JPEG', sX, sY, sW, sH);
+
+      pdf.setFontSize(9);
+      pdf.setTextColor(5, 150, 105);
+      pdf.text('Frontal View', 15, 156);[cite: 7]
+      pdf.text('Sagittal View', 110, 156);[cite: 7]
+
+      // 測定テーブル
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(15, 162, 195, 162);
+
+      pdf.setFontSize(10);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Quantitative Metrics', 15, 170);
+
+      pdf.setFontSize(9);
+      pdf.setTextColor(71, 85, 105);
+      const startY = 178;
+      const metrics = [
+        ['Head Lateral Tilt', `${currentMetrics.headTilt.toFixed(1)} deg`, currentMetrics.headTilt <= 1.5 ? 'Normal' : 'Caution'],
+        ['Shoulder Horizontal Tilt', `${currentMetrics.shoulderTilt.toFixed(1)} deg`, currentMetrics.shoulderTilt <= 2.0 ? 'Normal' : 'Asymmetry'],
+        ['Pelvis Horizontal Tilt', `${currentMetrics.pelvisTilt.toFixed(1)} deg`, currentMetrics.pelvisTilt <= 2.0 ? 'Normal' : 'Tilt'],
+        ['Forward Head Translation', `${Math.abs(currentMetrics.forwardHeadCm).toFixed(1)} cm`, Math.abs(currentMetrics.forwardHeadCm) <= 3.0 ? 'Normal' : 'Forward']
+      ];
+
+      metrics.forEach((row, i) => {
+        const y = startY + i * 8;
+        pdf.text(row[0], 18, y);
+        pdf.text(row[1], 100, y);
+        pdf.text(row[2], 160, y);
+        pdf.setDrawColor(241, 245, 249);
+        pdf.line(15, y + 2, 195, y + 2);
+      });
+
+      // 総合タイプ
+      pdf.setFillColor(241, 245, 249);
+      pdf.roundedRect(15, 215, 180, 12, 2, 2, 'F');
+      pdf.setFontSize(9);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text('Classification:  ' + currentMetrics.postureType, 20, 223);
+
+      // 所見枠[cite: 8]
+      pdf.setDrawColor(203, 213, 225);
+      pdf.roundedRect(15, 233, 180, 40, 2, 2, 'D');
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('Clinical Findings & Exercise Prescription:', 18, 239);
+      pdf.text('PT Signature: _______________________', 120, 268);[cite: 8]
+
       pdf.save(`posture_report_${Date.now()}.pdf`);
     }
+
+    // PDF保存ボタン
+    document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
+      await exportPurePdf();
+    });
+
+    // 撮り直し
+    document.getElementById('retakeBtn').addEventListener('click', () => {
+      document.getElementById('previewModal').classList.add('hidden');
+      document.getElementById('previewModal').classList.remove('flex');
+      resetPostureSession();
+    });
+
+    document.getElementById('closePreviewBtn').addEventListener('click', () => {
+      document.getElementById('previewModal').classList.add('hidden');
+      document.getElementById('previewModal').classList.remove('flex');
+    });
 
     function resetPostureSession() {
       currentStep = 1;
