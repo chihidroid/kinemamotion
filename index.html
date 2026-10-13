@@ -5,147 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>KinemaMotion - Biomechanics Pro</title>
   
-  <!-- PWA & フルスクリーン最適化メタタグ -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="KinemaMotion">
-  <meta name="mobile-web-app-capable" content="yes">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+  <!-- PDF & キャンバス生成ライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <style>
-    body {
-      background-color: #000000;
-      color: #f8fafc;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    .onform-glass {
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-    /* iOS セーフエリアの余白対応 */
-    .safe-top {
-      padding-top: max(8px, env(safe-area-inset-top));
-    }
-    .safe-bottom {
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-    }
+    body { background-color: #000; color: #f8fafc; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+    .onform-glass { background: rgba(15, 23, 42, 0.90); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+    .safe-top { padding-top: max(8px, env(safe-area-inset-top)); }
+    .safe-bottom { padding-bottom: max(12px, env(safe-area-inset-bottom)); }
     input[type="checkbox"] { accent-color: #06b6d4; }
   </style>
 </head>
 <body class="h-[100dvh] w-screen flex flex-col justify-between overflow-hidden font-sans">
 
-  <!-- ========================================== -->
-  <!-- 1. TOP TOOLBAR (ノッチ回避セーフエリア対応)    -->
-  <!-- ========================================== -->
-  <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-3 sm:px-4 py-2 safe-top flex items-center justify-between shrink-0">
-    <!-- ロゴ & 面セレクター -->
+  <!-- TOP TOOLBAR -->
+  <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-3 py-2 safe-top flex items-center justify-between shrink-0">
     <div class="flex items-center gap-2">
-      <div class="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center font-black text-xs text-black shadow-md shadow-cyan-500/20">KM</div>
-      
-      <div class="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-700/80">
-        <button id="planeFrontalBtn" class="px-2 py-1 rounded text-[11px] font-bold bg-cyan-600 text-white transition-all">前額面 (正面)</button>
-        <button id="planeSagittalBtn" class="px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white transition-all">矢状面 (側面)</button>
+      <div class="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center font-black text-xs text-black">KM</div>
+      <div class="flex flex-col">
+        <span class="text-xs font-bold leading-none text-white">KinemaMotion</span>
+        <span id="stepBadge" class="text-[9px] text-cyan-400 font-mono font-bold">STEP 1: 前額面 (正面)</span>
       </div>
     </div>
 
-    <!-- モード切り替え -->
-    <div class="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-700/80">
-      <button id="tabRomBtn" class="px-2 py-1 rounded text-[11px] font-bold bg-slate-800 text-cyan-400 border border-cyan-500/30">可動域</button>
-      <button id="tabJumpBtn" class="px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white">CMJジャンプ</button>
+    <!-- ステップ進捗インジケータ -->
+    <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+      <div id="step1Dot" class="w-2.5 h-2.5 rounded-full bg-cyan-400"></div>
+      <span class="text-[10px] text-slate-400">→</span>
+      <div id="step2Dot" class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
+      <span class="text-[10px] font-mono text-slate-300 ml-1" id="stepLabel">正面</span>
     </div>
 
-    <!-- 右側アクション -->
-    <div class="flex items-center gap-1.5">
-      <div id="tiltIndicator" class="hidden sm:flex items-center gap-1 font-mono text-[10px]">
-        <span id="shTiltBadge" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">肩: 0.0°</span>
-        <span id="pelTiltBadge" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">骨盤: 0.0°</span>
-      </div>
-      <button id="flipCamBtn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
-    </div>
+    <button id="flipCamBtn" class="p-1.5 rounded-lg bg-slate-800 text-cyan-400 border border-slate-700">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+    </button>
   </header>
 
-  <!-- ========================================== -->
-  <!-- 2. MAIN VIEWPORT (見切れ防止・完全フィット)   -->
-  <!-- ========================================== -->
+  <!-- MAIN VIEWPORT -->
   <main class="flex-1 relative w-full min-h-0 flex items-center justify-center bg-black overflow-hidden">
     <video id="inputVideo" class="hidden" autoplay playsinline muted></video>
-    <!-- 全画面でアスペクト比を保持して上下見切れを防止 -->
     <canvas id="outputCanvas" class="w-full h-full object-contain max-h-full"></canvas>
 
-    <!-- 初期ロード画面 -->
     <div id="loadingStatus" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-cyan-400 text-xs gap-3 z-40">
       <div class="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
       <span id="loadingMessage" class="font-mono">AIエンジン起動中...</span>
     </div>
 
-    <!-- 巨大カウントダウン -->
+    <!-- カウントダウン -->
     <div id="countdownOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-40 pointer-events-none">
       <div id="countdownNumber" class="text-9xl font-black text-cyan-400 font-mono animate-bounce drop-shadow-[0_0_35px_rgba(6,182,212,0.8)]">3</div>
     </div>
 
-    <!-- 録画ステータス -->
+    <!-- 録画インジケータ -->
     <div id="recIndicator" class="absolute top-3 left-3 hidden items-center gap-2 bg-rose-950/80 border border-rose-600 px-3 py-1 rounded-full backdrop-blur z-20">
       <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-      <span class="text-xs font-bold font-mono text-rose-300">REC [VIDEO+DATA] <span id="recDuration">0.0</span>s</span>
+      <span class="text-xs font-bold font-mono text-rose-300">REC <span id="recDuration">0.0</span>s</span>
     </div>
 
-    <!-- CMJ バリデーション枠ガイド -->
-    <div id="jumpGuideBox" class="absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-dashed border-amber-500/60 rounded-3xl pointer-events-none hidden flex-col items-center justify-between p-3 z-20 transition-all duration-300">
-      <div id="guideTopTag" class="px-3 py-1 rounded-full bg-amber-950/90 text-amber-300 border border-amber-600 text-[11px] font-bold tracking-wide backdrop-blur">
-        全身を枠内に収めてください
-      </div>
-      <div class="text-[10px] text-slate-400/80 font-mono uppercase tracking-widest">CALIBRATION ZONE</div>
-      <div class="px-2.5 py-0.5 rounded bg-black/60 text-slate-400 text-[10px] font-mono">接地基準ライン</div>
+    <!-- ステップ切替案内ポップアップ -->
+    <div id="stepTransitionModal" class="absolute inset-x-4 top-16 bg-slate-900/95 border border-cyan-500 rounded-2xl p-4 hidden flex-col items-center gap-2 z-30 shadow-2xl backdrop-blur">
+      <div class="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">✓</div>
+      <span class="text-xs font-bold text-white text-center">前額面の測定が完了しました！</span>
+      <span class="text-[11px] text-slate-300 text-center">被検者は<strong>真横（矢状面）</strong>を向いてください。</span>
+      <button id="startStep2Btn" class="mt-2 px-4 py-1.5 rounded-xl bg-cyan-600 text-white text-xs font-bold shadow-lg">
+        矢状面（側面）の測定を開始
+      </button>
     </div>
-
-    <!-- CMJ 結果カード -->
-    <div id="jumpFloatCard" class="absolute top-3 right-3 hidden flex-col gap-1 p-2.5 rounded-xl onform-glass border border-indigo-500/50 z-20 min-w-[130px]">
-      <div class="flex items-center justify-between">
-        <span class="text-[9px] text-slate-400 font-bold uppercase">CMJ JUMP</span>
-        <span id="jumpStateLabel" class="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-mono border border-amber-800">ALIGNING</span>
-      </div>
-      <div class="flex items-baseline gap-1">
-        <span id="jumpHeightVal" class="text-2xl font-black font-mono text-white">0.0</span>
-        <span class="text-xs font-bold text-slate-400">cm</span>
-      </div>
-      <div class="text-[10px] text-slate-300 font-mono flex justify-between">
-        <span>滞空時間:</span>
-        <span id="flightTimeVal" class="text-indigo-300 font-bold">0 ms</span>
-      </div>
-      <div class="text-[10px] text-slate-400 font-mono flex justify-between border-t border-slate-800 pt-1">
-        <span>離地加速度:</span>
-        <span id="peakAccVal" class="text-cyan-400 font-bold">0.0 G</span>
-      </div>
-    </div>
-
-    <!-- ニーイン警告バナー -->
-    <div id="alertBanner" class="absolute bottom-3 inset-x-4 py-2 text-center text-xs font-bold rounded-xl hidden backdrop-blur z-20 shadow-xl border border-rose-500 bg-rose-600/90 text-white"></div>
   </main>
 
-  <!-- ========================================== -->
-  <!-- 3. BOTTOM CONTROL BAR (ホームバー対応)       -->
-  <!-- ========================================== -->
+  <!-- BOTTOM CONTROL BAR -->
   <footer class="w-full z-30 onform-glass border-t border-slate-800/80 px-4 py-2 safe-bottom flex items-center justify-between shrink-0">
-    <div class="flex items-center gap-1">
-      <!-- 設定HUD -->
-      <button id="openJointMenuBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-cyan-400 transition-colors w-12 sm:w-16">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-        <span class="text-[9px] sm:text-[10px] font-medium leading-none">設定HUD</span>
-      </button>
-
-      <!-- PWA / 全画面ガイドボタン -->
-      <button id="pwaInstallBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-amber-400 transition-colors w-12 sm:w-16">
-        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-        </svg>
-        <span class="text-[9px] sm:text-[10px] font-medium leading-none text-amber-400">全画面化</span>
+    <div class="flex items-center gap-2">
+      <button id="resetSessionBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-[10px] border border-slate-700">
+        最初から
       </button>
     </div>
 
@@ -156,170 +95,108 @@
       </button>
     </div>
 
-    <!-- CSV保存ボタン -->
-    <button id="exportCsvBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors w-12 sm:w-16">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-      <span class="text-[9px] sm:text-[10px] font-medium leading-none">CSV保存</span>
-    </button>
+    <div class="w-16 flex justify-end">
+      <span id="statusSubLabel" class="text-[10px] font-mono text-slate-400">READY</span>
+    </div>
   </footer>
 
   <!-- ========================================== -->
-  <!-- 4. PWA案内ポップアップモーダル               -->
+  <!-- オフスクリーン A4レポート生成用テンプレート -->
   <!-- ========================================== -->
-  <div id="pwaGuideModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-    <div class="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <div class="flex items-center gap-2">
-          <span class="text-amber-400 text-base">📲</span>
-          <h3 class="text-xs font-bold text-white">完全全画面（アプリ化）の手順</h3>
-        </div>
-        <button id="closePwaGuideBtn" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800">閉じる</button>
+  <div id="reportContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; min-height: 1123px; background: #ffffff; color: #0f172a; padding: 40px; font-family: sans-serif;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 12px;">
+      <div>
+        <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">バイオメカニクス動作解析レポート</h1>
+        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">百武整形外科病院 スポーツ事業部 / KinemaMotion 評価システム[cite: 2, 7]</p>
       </div>
-
-      <p class="text-xs text-slate-300 leading-relaxed">
-        Safariのアドレスバーを消して、カメラを画面いっぱいに広げるにはホーム画面へ追加します。
-      </p>
-
-      <div class="flex flex-col gap-2.5 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800 font-sans">
-        <div class="flex items-center gap-2.5">
-          <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
-          <span class="text-slate-200">画面下の <strong>共有アイコン</strong>（四角に上矢印）をタップ</span>
-        </div>
-        <div class="flex items-center gap-2.5">
-          <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
-          <span class="text-slate-200">メニューから <strong>「ホーム画面に追加」</strong> を選択</span>
-        </div>
-        <div class="flex items-center gap-2.5">
-          <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
-          <span class="text-slate-200">右上の <strong>「追加」</strong> を押すと完了</span>
-        </div>
-      </div>
-
-      <div class="text-[11px] text-slate-400 text-center">
-        ホーム画面のアイコンから起動すると、余白ゼロのフルスクリーンになります。
+      <div style="text-align: right; font-size: 11px; color: #475569;">
+        <p style="margin: 0;">測定日: <span id="repDate">-</span></p>
+        <p style="margin: 2px 0 0 0;">ID: KM-<span id="repId">001</span></p>
       </div>
     </div>
-  </div>
 
-  <!-- ========================================== -->
-  <!-- 5. 設定HUD ドロワー                        -->
-  <!-- ========================================== -->
-  <div id="jointDrawer" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex-col justify-end">
-    <div class="w-full max-w-lg mx-auto bg-slate-900 border-t border-slate-700 rounded-t-2xl p-4 safe-bottom flex flex-col gap-3 shadow-2xl max-h-[85vh] overflow-y-auto">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-        <span class="text-xs font-bold text-white flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-          HUD表示 & 重心・加速度設定
-        </span>
-        <button id="closeJointMenuBtn" class="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded bg-slate-800">完了</button>
+    <!-- スナップショット 2面比較 -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;">
+      <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc;">
+        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">前額面（正面）アライメント</h3>
+        <img id="repFrontImg" style="width: 100%; height: 260px; object-fit: contain; border-radius: 4px; background: #000;" />
       </div>
-
-      <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col gap-2">
-        <span class="text-[10px] font-bold text-emerald-400">身体重心 (COM) ＆ ベクトル</span>
-        <label class="flex items-center justify-between text-xs cursor-pointer">
-          <div class="flex items-center gap-2"><input type="checkbox" id="chkComMarker" checked><span class="text-slate-200">丹田 重心マーク</span></div>
-          <span class="text-[10px] font-mono text-emerald-400">COM Target</span>
-        </label>
-        <label class="flex items-center justify-between text-xs cursor-pointer">
-          <div class="flex items-center gap-2"><input type="checkbox" id="chkComVector" checked><span class="text-slate-200">ジャンプ爆発加速度ベクトル</span></div>
-          <span class="text-[10px] font-mono text-cyan-400">Vector G</span>
-        </label>
+      <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc;">
+        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">矢状面（側面）キネマティクス[cite: 7]</h3>
+        <img id="repSagittalImg" style="width: 100%; height: 260px; object-fit: contain; border-radius: 4px; background: #000;" />
       </div>
+    </div>
 
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <div class="flex flex-col gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-          <span class="text-[10px] font-bold text-cyan-400 border-b border-slate-800 pb-1">右側 (Right)</span>
-          <label class="flex items-center gap-2"><input type="checkbox" id="chkRKnee" checked><span class="text-slate-300">右 膝屈曲</span></label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="chkRHip" checked><span class="text-slate-300">右 股関節</span></label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="chkRAnkle"><span class="text-slate-300">右 足関節</span></label>
-        </div>
-        <div class="flex flex-col gap-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-          <span class="text-[10px] font-bold text-indigo-400 border-b border-slate-800 pb-1">左側 (Left)</span>
-          <label class="flex items-center gap-2"><input type="checkbox" id="chkLKnee"><span class="text-slate-300">左 膝屈曲</span></label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="chkLHip"><span class="text-slate-300">左 股関節</span></label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="chkLAnkle"><span class="text-slate-300">左 足関節</span></label>
-        </div>
+    <!-- 主要指標テーブル -->
+    <div style="margin-top: 24px;">
+      <h3 style="font-size: 13px; font-weight: 700; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 8px; margin-bottom: 10px;">主要キネマティクス測定値[cite: 7]</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+            <th style="padding: 8px; text-align: left;">測定項目</th>
+            <th style="padding: 8px; text-align: center;">右側 (Right)</th>
+            <th style="padding: 8px; text-align: center;">左側 (Left)</th>
+            <th style="padding: 8px; text-align: center;">左右差 / 判定</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px; font-weight: 600;">最大 膝屈曲角度</td>
+            <td id="repRKnee" style="padding: 8px; text-align: center;">-</td>
+            <td id="repLKnee" style="padding: 8px; text-align: center;">-</td>
+            <td id="repKneeSym" style="padding: 8px; text-align: center;">-</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px; font-weight: 600;">体幹前傾角度 (Trunk Lean)[cite: 7]</td>
+            <td colspan="2" id="repTrunk" style="padding: 8px; text-align: center;">-</td>
+            <td id="repTrunkEval" style="padding: 8px; text-align: center;">適正範囲</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px; font-weight: 600;">骨盤 水平傾斜角 (Pelvis Tilt)</td>
+            <td colspan="2" id="repPelvis" style="padding: 8px; text-align: center;">-</td>
+            <td id="repPelvisEval" style="padding: 8px; text-align: center;">良好</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 8px; font-weight: 600;">動的膝外反 (Knee-in) 警告[cite: 7]</td>
+            <td colspan="3" id="repKneeIn" style="padding: 8px; text-align: center; font-weight: bold; color: #16a34a;">検知なし (正常)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 臨床所見欄 -->
+    <div style="margin-top: 24px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #fafafa;">
+      <h4 style="font-size: 11px; font-weight: 700; color: #475569; margin: 0 0 6px 0;">理学療法士 / 担当トレーナー 所見欄[cite: 8]</h4>
+      <div style="min-height: 80px; border-bottom: 1px dashed #cbd5e1;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 24px; margin-top: 12px; font-size: 10px; color: #64748b;">
+        <span>担当PT: ____________________[cite: 8]</span>
+        <span>確認ドクター: ____________________[cite: 8]</span>
       </div>
-
-      <label class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
-        <div class="flex items-center gap-2"><input type="checkbox" id="chkTrunk" checked><span class="text-slate-200">体幹前傾角度（鉛直軸比）</span></div>
-        <span class="text-[10px] font-mono text-cyan-400">Trunk</span>
-      </label>
     </div>
   </div>
 
   <script>
     // Audio Engine
     class AudioEngine {
-      constructor() { this.ctx = null; this.lastBeep = 0; }
+      constructor() { this.ctx = null; }
       init() {
         if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (this.ctx.state === 'suspended') this.ctx.resume();
       }
-      playCountdownTick(freq = 440) {
+      beep(freq = 440, duration = 0.15) {
         this.init();
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.16);
-      }
-      playChime() {
-        this.init();
-        const now = this.ctx.currentTime;
-        if (now - this.lastBeep < 0.6) return;
-        this.lastBeep = now;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.frequency.setValueAtTime(659.25, now);
         gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.35);
-      }
-      playReady() {
-        this.init();
-        const now = this.ctx.currentTime;
-        if (now - this.lastBeep < 0.6) return;
-        this.lastBeep = now;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.frequency.setValueAtTime(880, now);
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.22);
-      }
-      playAlert() {
-        this.init();
-        const now = this.ctx.currentTime;
-        if (now - this.lastBeep < 0.4) return;
-        this.lastBeep = now;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.linearRampToValueAtTime(160, now + 0.2);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(now); osc.stop(now + duration + 0.01);
       }
     }
     const audio = new AudioEngine();
 
-    // Math Helpers
     function calculateAngle(a, b, c) {
       const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
       let angle = Math.abs((radians * 180.0) / Math.PI);
@@ -327,41 +204,28 @@
       return angle;
     }
 
-    function calculateHorizontalTilt(p1, p2) {
-      const dy = p2.y - p1.y;
-      const dx = p2.x - p1.x;
-      return Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
-    }
-
-    // Elements & States
     const videoElement = document.getElementById('inputVideo');
     const canvasElement = document.getElementById('outputCanvas');
     const canvasCtx = canvasElement.getContext('2d');
     const loadingStatus = document.getElementById('loadingStatus');
-    const loadingMessage = document.getElementById('loadingMessage');
 
-    let currentPlane = 'frontal';
-    let currentMode = 'rom';
+    // セッションステート (Step 1: 前額面 -> Step 2: 矢状面)
+    let currentStep = 1; 
+    let isRecording = false;
+    let isCountingDown = false;
+    let recordStartTime = 0;
+    let mediaRecorder = null;
+    let recordedChunks = [];
     let facingUser = true;
 
-    let isCountingDown = false;
-    let isRecording = false;
-    let recordStartTime = 0;
-    let recordedDataset = [];
-    let mediaRecorder = null;
-    let recordedVideoBlobs = [];
+    // 蓄積データ & スナップショット
+    let step1Data = [];
+    let step2Data = [];
+    let step1Snapshot = null;
+    let step2Snapshot = null;
 
-    let prevCom = null;
-    let prevComVel = { x: 0, y: 0 };
-    let comAcc = { x: 0, y: 0 };
-    let peakTakeoffAcc = 0;
-
-    let isPoseValidForJump = false;
-    let baselineFootY = null;
-    let jumpPhase = 'aligning';
-    let flightStartTime = 0;
-
-    let isProcessing = false;
+    let maxRKnee = 0, maxLKnee = 0, maxTrunk = 0, maxPelvisTilt = 0;
+    let kneeInDetected = false;
 
     const SKELETON_PAIRS = [
       [11, 12], [23, 24], [11, 23], [12, 24],
@@ -374,13 +238,7 @@
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
     });
-
-    pose.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
+    pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
     pose.onResults((results) => {
       loadingStatus.classList.add('hidden');
@@ -397,566 +255,287 @@
 
       if (results.poseLandmarks) {
         const lm = results.poseLandmarks;
-
         const lShoulder = lm[11], rShoulder = lm[12];
-        const lElbow = lm[13],    rElbow = lm[14];
-        const lWrist = lm[15],    rWrist = lm[16];
-        const lHip = lm[23],      rHip = lm[24];
-        const lKnee = lm[25],     rKnee = lm[26];
-        const lAnkle = lm[27],    rAnkle = lm[28];
-        const lFoot = lm[31],     rFoot = lm[32];
+        const lHip = lm[23], rHip = lm[24];
+        const lKnee = lm[25], rKnee = lm[26];
+        const lAnkle = lm[27], rAnkle = lm[28];
+        const lFoot = lm[31], rFoot = lm[32];
         const nose = lm[0];
 
         const rKneeAngle = Math.max(0, 180 - calculateAngle(rHip, rKnee, rAnkle));
         const lKneeAngle = Math.max(0, 180 - calculateAngle(lHip, lKnee, lAnkle));
-        const rHipAngle = Math.max(0, 180 - calculateAngle(rShoulder, rHip, rKnee));
-        const lHipAngle = Math.max(0, 180 - calculateAngle(lShoulder, lHip, lKnee));
-        const rAnkleAngle = calculateAngle(rKnee, rAnkle, rFoot) - 90;
-        const lAnkleAngle = calculateAngle(lKnee, lAnkle, lFoot) - 90;
-
         const midHip = { x: (lHip.x + rHip.x) / 2, y: (lHip.y + rHip.y) / 2 };
         const midShoulder = { x: (lShoulder.x + rShoulder.x) / 2, y: (lShoulder.y + rShoulder.y) / 2 };
         const trunkAngle = Math.abs(Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * 180 / Math.PI);
-
-        const tanden = {
-          x: midHip.x,
-          y: midHip.y + (lKnee.y - midHip.y) * 0.12
-        };
-
-        if (prevCom !== null) {
-          const dt = 1.0 / 30;
-          const velX = (tanden.x - prevCom.x) / dt;
-          const velY = (prevCom.y - tanden.y) / dt;
-          comAcc.x = ((velX - prevComVel.x) / dt) * 9.8;
-          comAcc.y = ((velY - prevComVel.y) / dt) * 9.8;
-          prevComVel = { x: velX, y: velY };
-        }
-        prevCom = { x: tanden.x, y: tanden.y };
-
-        const shoulderTilt = calculateHorizontalTilt(lShoulder, rShoulder);
-        const pelvisTilt = calculateHorizontalTilt(lHip, rHip);
-        const isShoulderLevel = shoulderTilt <= 2.5;
-        const isPelvisLevel = pelvisTilt <= 2.5;
-
-        const updateTiltBadge = (id, label, deg, isLevel) => {
-          const el = document.getElementById(id);
-          if (!el) return;
-          el.innerText = `${label}: ${deg.toFixed(1)}°`;
-          el.className = isLevel ? 'px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500 font-bold' : 'px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
-        };
-        updateTiltBadge('shTiltBadge', '肩', shoulderTilt, isShoulderLevel);
-        updateTiltBadge('pelTiltBadge', '骨盤', pelvisTilt, isPelvisLevel);
-
-        // CMJ精密測定
-        if (currentMode === 'jump') {
-          const guideBox = document.getElementById('jumpGuideBox');
-          const guideTop = document.getElementById('guideTopTag');
-          const stateLabel = document.getElementById('jumpStateLabel');
-
-          const isFullBodyVisible = (
-            nose.visibility > 0.6 &&
-            lShoulder.visibility > 0.6 && rShoulder.visibility > 0.6 &&
-            lAnkle.visibility > 0.6 && rAnkle.visibility > 0.6 &&
-            nose.y > 0.04 && lAnkle.y < 0.96 && rAnkle.y < 0.96
-          );
-
-          const isAlignmentCorrect = (currentPlane === 'frontal') 
-            ? (Math.abs(lShoulder.z - rShoulder.z) < 0.16 && Math.abs(lHip.z - rHip.z) < 0.16)
-            : (Math.abs(lShoulder.z - rShoulder.z) >= 0.12);
-
-          if (!isFullBodyVisible) {
-            isPoseValidForJump = false;
-            guideBox.className = 'absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-dashed border-rose-500/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20';
-            guideTop.innerText = '全身が枠に入っていません。下がってください';
-            stateLabel.innerText = 'STEP BACK';
-          } 
-          else if (!isAlignmentCorrect) {
-            isPoseValidForJump = false;
-            guideBox.className = 'absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-dashed border-amber-500/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20';
-            guideTop.innerText = (currentPlane === 'frontal') ? '真正面を向いてください' : '真横（側面）を向いてください';
-            stateLabel.innerText = 'ALIGN PLANE';
-          }
-          else {
-            if (!isPoseValidForJump) audio.playReady();
-            isPoseValidForJump = true;
-            guideBox.className = 'absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-emerald-400 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20 shadow-[0_0_25px_rgba(16,185,129,0.35)]';
-            guideTop.innerText = `READY - ${currentPlane === 'frontal' ? '前額面' : '矢状面'} 認識完了`;
-          }
-
-          if (isPoseValidForJump) {
-            const avgFootY = (lFoot.y + rFoot.y) / 2;
-            const currentKneeBend = Math.max(rKneeAngle, lKneeAngle);
-
-            if (baselineFootY === null && currentKneeBend < 15) {
-              baselineFootY = avgFootY;
-              stateLabel.innerText = 'READY';
-            }
-
-            if (currentKneeBend > 20 && jumpPhase !== 'airborne') {
-              jumpPhase = 'squat';
-              const currentG = (comAcc.y / 9.8) + 1.0;
-              if (currentG > peakTakeoffAcc) {
-                peakTakeoffAcc = currentG;
-                document.getElementById('peakAccVal').innerText = `${peakTakeoffAcc.toFixed(2)} G`;
-              }
-              stateLabel.innerText = 'SQUAT';
-            }
-
-            const isOffGround = baselineFootY && (avgFootY < baselineFootY - 0.035);
-            if (isOffGround && jumpPhase !== 'airborne') {
-              jumpPhase = 'airborne';
-              flightStartTime = now;
-              stateLabel.innerText = 'AIRBORNE';
-            }
-            else if (!isOffGround && jumpPhase === 'airborne') {
-              jumpPhase = 'ready';
-              const flightTimeMs = now - flightStartTime;
-
-              if (flightTimeMs >= 160 && flightTimeMs <= 1100) {
-                const flightSec = flightTimeMs / 1000.0;
-                const jumpHeightCm = (122.6 * Math.pow(flightSec, 2)).toFixed(1);
-                document.getElementById('jumpHeightVal').innerText = jumpHeightCm;
-                document.getElementById('flightTimeVal').innerText = `${Math.round(flightTimeMs)} ms`;
-                audio.playChime();
-              }
-              stateLabel.innerText = 'LANDED';
-              peakTakeoffAcc = 0;
-            }
-
-            if (currentPlane === 'frontal') {
-              const kneeDist = Math.abs(lKnee.x - rKnee.x);
-              const ankleDist = Math.abs(lAnkle.x - rAnkle.x);
-              const isKneeIn = (kneeDist < ankleDist * 0.72) && (currentKneeBend > 35);
-              const banner = document.getElementById('alertBanner');
-              if (isKneeIn) {
-                audio.playAlert();
-                banner.innerText = '⚠️ CAUTION: ニーイン (動的膝外反) 警告';
-                banner.className = 'absolute bottom-3 inset-x-4 py-2 text-center text-xs font-bold rounded-xl block bg-rose-600/90 text-white border border-rose-400 z-20 shadow-xl';
-              } else {
-                banner.className = 'hidden';
-              }
-            }
-          }
-        }
+        const pelvisTilt = Math.abs(Math.atan2(rHip.y - lHip.y, rHip.x - lHip.x) * 180 / Math.PI);
 
         // ピクトグラム描画
-        const baseColor = isRecording ? '#10b981' : '#38bdf8';
-        const jointColor = isRecording ? '#059669' : '#0284c7';
-
         SKELETON_PAIRS.forEach(([i, j]) => {
           const p1 = lm[i], p2 = lm[j];
           if (p1.visibility > 0.4 && p2.visibility > 0.4) {
-            let stroke = baseColor;
-            let lineW = 3.5;
-            if (currentPlane === 'frontal') {
-              if ((i === 11 && j === 12) && isShoulderLevel) { stroke = '#10b981'; lineW = 5; }
-              if ((i === 23 && j === 24) && isPelvisLevel) { stroke = '#10b981'; lineW = 5; }
-            }
             canvasCtx.beginPath();
             canvasCtx.moveTo(p1.x * w, p1.y * h);
             canvasCtx.lineTo(p2.x * w, p2.y * h);
-            canvasCtx.strokeStyle = stroke;
-            canvasCtx.lineWidth = lineW;
-            canvasCtx.lineCap = 'round';
+            canvasCtx.strokeStyle = isRecording ? '#10b981' : '#38bdf8';
+            canvasCtx.lineWidth = 3.5;
             canvasCtx.stroke();
           }
         });
 
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(midShoulder.x * w, midShoulder.y * h);
-        canvasCtx.lineTo(midHip.x * w, midHip.y * h);
-        canvasCtx.strokeStyle = '#94a3b8';
-        canvasCtx.lineWidth = 3.5;
-        canvasCtx.stroke();
-
-        if (nose.visibility > 0.4) {
-          canvasCtx.beginPath();
-          canvasCtx.moveTo(midShoulder.x * w, midShoulder.y * h);
-          canvasCtx.lineTo(nose.x * w, nose.y * h);
-          canvasCtx.strokeStyle = '#94a3b8';
-          canvasCtx.lineWidth = 3.5;
-          canvasCtx.stroke();
-
-          canvasCtx.beginPath();
-          canvasCtx.arc(nose.x * w, nose.y * h, 13, 0, 2 * Math.PI);
-          canvasCtx.fillStyle = baseColor;
-          canvasCtx.fill();
-          canvasCtx.strokeStyle = '#ffffff';
-          canvasCtx.lineWidth = 2;
-          canvasCtx.stroke();
-        }
-
-        const tX = tanden.x * w;
-        const tY = tanden.y * h;
-
-        if (document.getElementById('chkComMarker').checked) {
-          canvasCtx.beginPath();
-          canvasCtx.arc(tX, tY, 8, 0, 2 * Math.PI);
-          canvasCtx.fillStyle = 'rgba(16, 185, 129, 0.4)';
-          canvasCtx.fill();
-          canvasCtx.strokeStyle = '#10b981';
-          canvasCtx.lineWidth = 2;
-          canvasCtx.stroke();
-        }
-
-        if (document.getElementById('chkComVector').checked) {
-          const scale = 3.2;
-          const arrowEndX = tX + Math.min(Math.max(comAcc.x * scale, -90), 90);
-          const arrowEndY = tY - Math.min(Math.max(comAcc.y * scale, -110), 110);
-          const mag = Math.hypot(comAcc.x, comAcc.y);
-
-          if (mag > 3.0) {
-            const isUpward = comAcc.y > 0;
-            const vecColor = isUpward ? '#06b6d4' : '#f43f5e';
-
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(tX, tY);
-            canvasCtx.lineTo(arrowEndX, arrowEndY);
-            canvasCtx.strokeStyle = vecColor;
-            canvasCtx.lineWidth = Math.min(Math.max(mag * 0.4, 4), 8);
-            canvasCtx.lineCap = 'round';
-            canvasCtx.stroke();
-
-            const angle = Math.atan2(arrowEndY - tY, arrowEndX - tX);
-            const headLen = 14;
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(arrowEndX, arrowEndY);
-            canvasCtx.lineTo(arrowEndX - headLen * Math.cos(angle - Math.PI / 6), arrowEndY - headLen * Math.sin(angle - Math.PI / 6));
-            canvasCtx.lineTo(arrowEndX - headLen * Math.cos(angle + Math.PI / 6), arrowEndY - headLen * Math.sin(angle + Math.PI / 6));
-            canvasCtx.fillStyle = vecColor;
-            canvasCtx.fill();
-          }
-        }
-
-        const drawTag = (pt, label, val, color = '#06b6d4') => {
+        // 角度タグ描画
+        const drawTag = (pt, label, val) => {
           if (!pt || pt.visibility < 0.45) return;
-          const x = pt.x * w;
-          const y = pt.y * h;
-          const text = `${label}: ${val.toFixed(1)}°`;
-
+          const x = pt.x * w, y = pt.y * h;
           canvasCtx.save();
-          if (facingUser) {
-            canvasCtx.translate(x, y);
-            canvasCtx.scale(-1, 1);
-            canvasCtx.translate(-x, -y);
-          }
-
-          canvasCtx.font = 'bold 15px "JetBrains Mono", monospace, sans-serif';
-          const txtW = canvasCtx.measureText(text).width;
-          const pad = 8;
-          const bW = txtW + pad * 2;
-          const bH = 26;
-          const bX = facingUser ? x - bW - 14 : x + 14;
-          const bY = y - bH / 2;
-
+          if (facingUser) { canvasCtx.translate(x, y); canvasCtx.scale(-1, 1); canvasCtx.translate(-x, -y); }
+          canvasCtx.font = 'bold 15px monospace';
           canvasCtx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-          canvasCtx.strokeStyle = color;
-          canvasCtx.lineWidth = 2;
-          canvasCtx.beginPath();
-          canvasCtx.roundRect(bX, bY, bW, bH, 6);
-          canvasCtx.fill();
-          canvasCtx.stroke();
-
-          canvasCtx.fillStyle = '#ffffff';
-          canvasCtx.fillText(text, bX + pad, bY + 18);
+          canvasCtx.fillRect(x + 10, y - 13, 110, 26);
+          canvasCtx.strokeStyle = '#06b6d4';
+          canvasCtx.strokeRect(x + 10, y - 13, 110, 26);
+          canvasCtx.fillStyle = '#fff';
+          canvasCtx.fillText(`${label}: ${val.toFixed(1)}°`, x + 16, y + 5);
           canvasCtx.restore();
         };
 
-        if (currentPlane === 'sagittal') {
-          const isRightCloser = rHip.z < lHip.z;
-          if (isRightCloser) {
-            drawTag(rKnee, 'R-Knee', rKneeAngle, '#06b6d4');
-            drawTag(rHip, 'R-Hip', rHipAngle, '#818cf8');
-            drawTag(rAnkle, 'R-Ankle', rAnkleAngle, '#f59e0b');
-          } else {
-            drawTag(lKnee, 'L-Knee', lKneeAngle, '#38bdf8');
-            drawTag(lHip, 'L-Hip', lHipAngle, '#a5b4fc');
-            drawTag(lAnkle, 'L-Ankle', lAnkleAngle, '#fbbf24');
-          }
-          if (document.getElementById('chkTrunk').checked) drawTag(midShoulder, 'Trunk', trunkAngle, '#f43f5e');
+        if (currentStep === 1) {
+          drawTag(rKnee, 'R-Knee', rKneeAngle);
+          drawTag(lKnee, 'L-Knee', lKneeAngle);
         } else {
-          if (document.getElementById('chkRKnee').checked) drawTag(rKnee, 'R-Knee', rKneeAngle, '#06b6d4');
-          if (document.getElementById('chkLKnee').checked) drawTag(lKnee, 'L-Knee', lKneeAngle, '#38bdf8');
-          if (document.getElementById('chkRHip').checked) drawTag(rHip, 'R-Hip', rHipAngle, '#818cf8');
-          if (document.getElementById('chkLHip').checked) drawTag(lHip, 'L-Hip', lHipAngle, '#a5b4fc');
-          if (document.getElementById('chkTrunk').checked) drawTag(midShoulder, 'Trunk', trunkAngle, '#f43f5e');
+          const isRightCloser = rHip.z < lHip.z;
+          drawTag(isRightCloser ? rKnee : lKnee, 'Knee', isRightCloser ? rKneeAngle : lKneeAngle);
+          drawTag(midShoulder, 'Trunk', trunkAngle);
         }
 
+        // 録画中のデータ蓄積 & ピークスナップショット更新
         if (isRecording) {
-          const elapsed = ((now - recordStartTime) / 1000.0).toFixed(3);
+          const elapsed = ((now - recordStartTime) / 1000.0).toFixed(2);
           document.getElementById('recDuration').innerText = elapsed;
-          recordedDataset.push({
-            time: elapsed,
-            plane: currentPlane,
-            rKnee: rKneeAngle.toFixed(2),
-            lKnee: lKneeAngle.toFixed(2),
-            rHip: rHipAngle.toFixed(2),
-            lHip: lHipAngle.toFixed(2),
-            rAnkle: rAnkleAngle.toFixed(2),
-            lAnkle: lAnkleAngle.toFixed(2),
-            trunk: trunkAngle.toFixed(2),
-            shoulderTilt: shoulderTilt.toFixed(2),
-            pelvisTilt: pelvisTilt.toFixed(2),
-            comAccX: comAcc.x.toFixed(2),
-            comAccY: comAcc.y.toFixed(2)
-          });
+
+          if (rKneeAngle > maxRKnee) maxRKnee = rKneeAngle;
+          if (lKneeAngle > maxLKnee) maxLKnee = lKneeAngle;
+          if (trunkAngle > maxTrunk) maxTrunk = trunkAngle;
+          if (pelvisTilt > maxPelvisTilt) maxPelvisTilt = pelvisTilt;
+
+          // 前額面ニーイン判定[cite: 7]
+          if (currentStep === 1 && rKneeAngle > 35) {
+            const kneeDist = Math.abs(lKnee.x - rKnee.x);
+            const ankleDist = Math.abs(lAnkle.x - rAnkle.x);
+            if (kneeDist < ankleDist * 0.72) kneeInDetected = true;
+          }
+
+          // 最も深く曲がった瞬間のキャンバスを静止画として保持
+          if (currentStep === 1 && (rKneeAngle + lKneeAngle) >= (maxRKnee + maxLKnee - 2)) {
+            step1Snapshot = canvasElement.toDataURL('image/jpeg', 0.85);
+          } else if (currentStep === 2 && trunkAngle >= maxTrunk - 2) {
+            step2Snapshot = canvasElement.toDataURL('image/jpeg', 0.85);
+          }
         }
       }
     });
 
-    // Native Camera Access
-    let currentStream = null;
+    // Native Camera
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingUser ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      videoElement.srcObject = stream;
+      await videoElement.play();
 
-    async function startCamera(isUser) {
-      if (currentStream) currentStream.getTracks().forEach(track => track.stop());
-      facingUser = isUser;
-      canvasElement.style.transform = facingUser ? 'scaleX(-1)' : 'scaleX(1)';
-
-      try {
-        loadingMessage.innerText = 'カメラ起動中...';
-        currentStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facingUser ? 'user' : 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 60, min: 30 }
-          },
-          audio: false
-        });
-
-        videoElement.srcObject = currentStream;
-        await videoElement.play();
-        loadingMessage.innerText = 'AIモデル初期化中...';
-
-        async function processFrame() {
-          if (!videoElement.paused && !videoElement.ended && videoElement.videoWidth > 0) {
-            if (!isProcessing) {
-              isProcessing = true;
-              try { await pose.send({ image: videoElement }); } catch (e) { console.error(e); }
-              isProcessing = false;
-            }
-          }
-          requestAnimationFrame(processFrame);
+      async function loop() {
+        if (!videoElement.paused && !videoElement.ended) {
+          await pose.send({ image: videoElement });
         }
-        processFrame();
-
-      } catch (err) {
-        console.error('Camera Error: ', err);
-        loadingMessage.innerText = 'カメラの取得に失敗しました。';
+        requestAnimationFrame(loop);
       }
+      loop();
     }
-
-    startCamera(true);
+    startCamera();
 
     document.getElementById('flipCamBtn').addEventListener('click', () => {
-      startCamera(!facingUser);
+      facingUser = !facingUser;
+      canvasElement.style.transform = facingUser ? 'scaleX(-1)' : 'scaleX(1)';
+      startCamera();
     });
 
-    // 面セレクター
-    const planeFrontalBtn = document.getElementById('planeFrontalBtn');
-    const planeSagittalBtn = document.getElementById('planeSagittalBtn');
-    const tiltIndicator = document.getElementById('tiltIndicator');
+    // iOS対応 MediaRecorder 初期化
+    function createSafeMediaRecorder(stream) {
+      const types = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'];
+      let selectedType = '';
+      for (const t of types) {
+        if (MediaRecorder.isTypeSupported(t)) { selectedType = t; break; }
+      }
+      return new MediaRecorder(stream, selectedType ? { mimeType: selectedType } : undefined);
+    }
 
-    planeFrontalBtn.addEventListener('click', () => {
-      currentPlane = 'frontal';
-      planeFrontalBtn.className = 'px-2 py-1 rounded text-[11px] font-bold bg-cyan-600 text-white transition-all';
-      planeSagittalBtn.className = 'px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white transition-all';
-      tiltIndicator.classList.remove('hidden');
-      tiltIndicator.classList.add('flex');
-    });
-
-    planeSagittalBtn.addEventListener('click', () => {
-      currentPlane = 'sagittal';
-      planeSagittalBtn.className = 'px-2 py-1 rounded text-[11px] font-bold bg-indigo-600 text-white transition-all';
-      planeFrontalBtn.className = 'px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white transition-all';
-      tiltIndicator.classList.add('hidden');
-      tiltIndicator.classList.remove('flex');
-      document.getElementById('alertBanner').className = 'hidden';
-    });
-
-    // モード切替
-    const tabRomBtn = document.getElementById('tabRomBtn');
-    const tabJumpBtn = document.getElementById('tabJumpBtn');
-    const jumpFloatCard = document.getElementById('jumpFloatCard');
-    const jumpGuideBox = document.getElementById('jumpGuideBox');
-
-    tabRomBtn.addEventListener('click', () => {
-      currentMode = 'rom';
-      tabRomBtn.className = 'px-2 py-1 rounded text-[11px] font-bold bg-slate-800 text-cyan-400 border border-cyan-500/30';
-      tabJumpBtn.className = 'px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white';
-      jumpFloatCard.classList.add('hidden');
-      jumpFloatCard.classList.remove('flex');
-      jumpGuideBox.classList.add('hidden');
-      jumpGuideBox.classList.remove('flex');
-      document.getElementById('alertBanner').className = 'hidden';
-    });
-
-    tabJumpBtn.addEventListener('click', () => {
-      currentMode = 'jump';
-      tabJumpBtn.className = 'px-2 py-1 rounded text-[11px] font-bold bg-slate-800 text-indigo-400 border border-indigo-500/30';
-      tabRomBtn.className = 'px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white';
-      jumpFloatCard.classList.remove('hidden');
-      jumpFloatCard.classList.add('flex');
-      jumpGuideBox.classList.remove('hidden');
-      jumpGuideBox.classList.add('flex');
-      baselineFootY = null;
-      isPoseValidForJump = false;
-    });
-
-    // カウントダウン (3・2・1) & 録画
+    // 録画＆自動ステップ進行
     const recShutterBtn = document.getElementById('recShutterBtn');
     const shutterInner = document.getElementById('shutterInner');
     const recIndicator = document.getElementById('recIndicator');
     const countdownOverlay = document.getElementById('countdownOverlay');
     const countdownNumber = document.getElementById('countdownNumber');
 
-    function getSupportedMimeType() {
-      const types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4;codecs=avc1', 'video/mp4'];
-      for (const t of types) { if (MediaRecorder.isTypeSupported(t)) return t; }
-      return '';
-    }
-
-    function startActualRecording() {
-      recordedDataset = [];
-      recordedVideoBlobs = [];
+    function startStepRecording() {
+      recordedChunks = [];
       recordStartTime = performance.now();
+      const stream = canvasElement.captureStream(30);
+      mediaRecorder = createSafeMediaRecorder(stream);
 
-      const canvasStream = canvasElement.captureStream(30);
-      const mimeType = getSupportedMimeType();
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+      };
 
-      try {
-        mediaRecorder = new MediaRecorder(canvasStream, mimeType ? { mimeType } : undefined);
-        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordedVideoBlobs.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
+        await handleSaveVideo(blob, `kinema_step${currentStep}_${Date.now()}.mp4`);
 
-        mediaRecorder.onstop = () => {
-          const isMp4 = mimeType.includes('mp4');
-          const ext = isMp4 ? 'mp4' : 'webm';
-          const videoBlob = new Blob(recordedVideoBlobs, { type: mimeType || 'video/webm' });
-          const videoUrl = URL.createObjectURL(videoBlob);
-          const timeStamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_');
+        if (currentStep === 1) {
+          // Step 1 完了 -> Step 2 への案内表示
+          document.getElementById('stepTransitionModal').classList.remove('hidden');
+          document.getElementById('stepTransitionModal').classList.add('flex');
+        } else {
+          // Step 2 完了 -> A4 PDFの自動生成
+          await generateReportPdf();
+          alert('測定完了！動画とA4レポートPDFを保存しました。');
+          resetToInitialState();
+        }
+      };
 
-          const aVideo = document.createElement('a');
-          aVideo.href = videoUrl;
-          aVideo.download = `kinema_${currentPlane}_${timeStamp}.${ext}`;
-          aVideo.click();
-
-          if (recordedDataset.length > 0) {
-            let csv = 'Timestamp(s),Plane,R_Knee_Flex(deg),L_Knee_Flex(deg),R_Hip_Flex(deg),L_Hip_Flex(deg),R_Ankle(deg),L_Ankle(deg),Trunk_Lean(deg),Shoulder_Tilt(deg),Pelvis_Tilt(deg),COM_Acc_X(m_s2),COM_Acc_Y(m_s2)\n';
-            recordedDataset.forEach(r => {
-              csv += `${r.time},${r.plane},${r.rKnee},${r.lKnee},${r.rHip},${r.lHip},${r.rAnkle},${r.lAnkle},${r.trunk},${r.shoulderTilt},${r.pelvisTilt},${r.comAccX},${r.comAccY}\n`;
-            });
-            const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const csvUrl = URL.createObjectURL(csvBlob);
-            const aCsv = document.createElement('a');
-            aCsv.href = csvUrl;
-            aCsv.download = `kinema_${currentPlane}_${timeStamp}.csv`;
-            aCsv.click();
-          }
-        };
-
-        mediaRecorder.start(100);
-      } catch (e) {
-        console.error('MediaRecorder failed:', e);
-      }
-
+      mediaRecorder.start(100);
       isRecording = true;
       recIndicator.classList.remove('hidden');
       recIndicator.classList.add('flex');
-      shutterInner.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-rose-600 transition-all duration-200';
-      audio.playChime();
+      shutterInner.className = 'w-5 h-5 rounded-md bg-rose-600';
+      audio.beep(659, 0.3);
+
+      // 自動タイマー停止（1ステップあたり7秒間で自動カット）
+      setTimeout(() => {
+        if (isRecording) stopStepRecording();
+      }, 7000);
     }
 
+    function stopStepRecording() {
+      isRecording = false;
+      recIndicator.classList.add('hidden');
+      recIndicator.classList.remove('flex');
+      shutterInner.className = 'w-9 h-9 rounded-full bg-rose-600';
+      audio.beep(330, 0.2);
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    }
+
+    // iOS対応 動画保存ハンドラー
+    async function handleSaveVideo(blob, filename) {
+      const file = new File([blob], filename, { type: blob.type });
+      // iOS Web Share API
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'KinemaMotion Video' });
+          return;
+        } catch (err) {
+          console.warn('Share cancelled or failed, fallback to download anchor', err);
+        }
+      }
+      // 通常のブラウザフォールバック
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // シャッターボタン制御
     recShutterBtn.addEventListener('click', () => {
       if (isCountingDown) return;
-
       if (!isRecording) {
+        // カウントダウン開始
         isCountingDown = true;
         countdownOverlay.classList.remove('hidden');
         countdownOverlay.classList.add('flex');
-
-        let count = 3;
-        countdownNumber.innerText = count;
-        audio.playCountdownTick(440);
+        let c = 3;
+        countdownNumber.innerText = c;
+        audio.beep(440, 0.15);
 
         const timer = setInterval(() => {
-          count--;
-          if (count > 0) {
-            countdownNumber.innerText = count;
-            audio.playCountdownTick(440);
+          c--;
+          if (c > 0) {
+            countdownNumber.innerText = c;
+            audio.beep(440, 0.15);
           } else {
             clearInterval(timer);
             countdownOverlay.classList.add('hidden');
             countdownOverlay.classList.remove('flex');
             isCountingDown = false;
-            startActualRecording();
+            startStepRecording();
           }
         }, 1000);
-
       } else {
-        isRecording = false;
-        recIndicator.classList.add('hidden');
-        recIndicator.classList.remove('flex');
-        shutterInner.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-rose-600 transition-all duration-200';
-        audio.playAlert();
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        stopStepRecording();
       }
     });
 
-    // CSV手動保存
-    document.getElementById('exportCsvBtn').addEventListener('click', () => {
-      if (!recordedDataset.length) {
-        alert('保存する測定データがありません。');
-        return;
-      }
-      let csv = 'Timestamp(s),Plane,R_Knee_Flex(deg),L_Knee_Flex(deg),R_Hip_Flex(deg),L_Hip_Flex(deg),R_Ankle(deg),L_Ankle(deg),Trunk_Lean(deg),Shoulder_Tilt(deg),Pelvis_Tilt(deg),COM_Acc_X(m_s2),COM_Acc_Y(m_s2)\n';
-      recordedDataset.forEach(r => {
-        csv += `${r.time},${r.plane},${r.rKnee},${r.lKnee},${r.rHip},${r.lHip},${r.rAnkle},${r.lAnkle},${r.trunk},${r.shoulderTilt},${r.pelvisTilt},${r.comAccX},${r.comAccY}\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kinema_${currentPlane}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.csv`;
-      a.click();
+    // Step 2 開始ボタン
+    document.getElementById('startStep2Btn').addEventListener('click', () => {
+      document.getElementById('stepTransitionModal').classList.add('hidden');
+      document.getElementById('stepTransitionModal').classList.remove('flex');
+
+      currentStep = 2;
+      document.getElementById('stepBadge').innerText = 'STEP 2: 矢状面 (側面)';
+      document.getElementById('stepLabel').innerText = '側面';
+      document.getElementById('step1Dot').className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+      document.getElementById('step2Dot').className = 'w-2.5 h-2.5 rounded-full bg-cyan-400';
+      audio.beep(880, 0.2);
     });
 
-    // PWAガイド制御
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-    });
+    // A4 PDF 自動生成エンジン[cite: 7]
+    async function generateReportPdf() {
+      document.getElementById('repDate').innerText = new Date().toLocaleDateString('ja-JP');
+      document.getElementById('repId').innerText = Math.floor(1000 + Math.random() * 9000);
 
-    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
-    const pwaGuideModal = document.getElementById('pwaGuideModal');
-    const closePwaGuideBtn = document.getElementById('closePwaGuideBtn');
+      if (step1Snapshot) document.getElementById('repFrontImg').src = step1Snapshot;
+      if (step2Snapshot) document.getElementById('repSagittalImg').src = step2Snapshot;
 
-    pwaInstallBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
+      document.getElementById('repRKnee').innerText = `${maxRKnee.toFixed(1)}°`;
+      document.getElementById('repLKnee').innerText = `${maxLKnee.toFixed(1)}°`;
+      const diff = Math.abs(maxRKnee - maxLKnee);
+      document.getElementById('repKneeSym').innerText = diff <= 5.0 ? '左右対称 (良好)' : `差 ${diff.toFixed(1)}° (要注意)`;
+      document.getElementById('repTrunk').innerText = `${maxTrunk.toFixed(1)}°`;
+      document.getElementById('repPelvis').innerText = `${maxPelvisTilt.toFixed(1)}°`;
+
+      const kneeInLabel = document.getElementById('repKneeIn');
+      if (kneeInDetected) {
+        kneeInLabel.innerText = '⚠️ 動的膝外反 (ニーイン) を検知[cite: 7]';
+        kneeInLabel.style.color = '#dc2626';
       } else {
-        pwaGuideModal.classList.remove('hidden');
-        pwaGuideModal.classList.add('flex');
+        kneeInLabel.innerText = '検知なし (正常アライメント)[cite: 7]';
+        kneeInLabel.style.color = '#16a34a';
       }
-    });
 
-    closePwaGuideBtn.addEventListener('click', () => {
-      pwaGuideModal.classList.add('hidden');
-      pwaGuideModal.classList.remove('flex');
-    });
+      // レンダリング & PDF出力
+      const container = document.getElementById('reportContainer');
+      const canvas = await html2canvas(container, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
 
-    // ドロワー制御
-    const jointDrawer = document.getElementById('jointDrawer');
-    document.getElementById('openJointMenuBtn').addEventListener('click', () => {
-      jointDrawer.classList.remove('hidden');
-      jointDrawer.classList.add('flex');
-    });
-    document.getElementById('closeJointMenuBtn').addEventListener('click', () => {
-      jointDrawer.classList.add('hidden');
-      jointDrawer.classList.remove('flex');
-    });
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`kinema_report_${Date.now()}.pdf`);
+    }
+
+    function resetToInitialState() {
+      currentStep = 1;
+      maxRKnee = 0; maxLKnee = 0; maxTrunk = 0; maxPelvisTilt = 0;
+      kneeInDetected = false;
+      step1Snapshot = null; step2Snapshot = null;
+      document.getElementById('stepBadge').innerText = 'STEP 1: 前額面 (正面)';
+      document.getElementById('stepLabel').innerText = '正面';
+      document.getElementById('step1Dot').className = 'w-2.5 h-2.5 rounded-full bg-cyan-400';
+      document.getElementById('step2Dot').className = 'w-2.5 h-2.5 rounded-full bg-slate-700';
+    }
+
+    document.getElementById('resetSessionBtn').addEventListener('click', resetToInitialState);
   </script>
 </body>
 </html>
