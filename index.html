@@ -11,7 +11,6 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
-  <!-- PDF & キャンバス生成ライブラリ -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
@@ -43,7 +42,7 @@
       <span class="text-[10px] font-mono text-slate-300 ml-1" id="stepLabel">正面</span>
     </div>
 
-    <button id="flipCamBtn" class="p-1.5 rounded-lg bg-slate-800 text-cyan-400 border border-slate-700">
+    <button id="flipCamBtn" class="p-1.5 rounded-lg bg-slate-800 text-cyan-400 border border-slate-700 active:scale-95 transition-transform">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
     </button>
   </header>
@@ -100,9 +99,7 @@
     </div>
   </footer>
 
-  <!-- ========================================== -->
-  <!-- オフスクリーン A4レポート生成用テンプレート -->
-  <!-- ========================================== -->
+  <!-- オフスクリーン A4レポート生成用テンプレート[cite: 7] -->
   <div id="reportContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; min-height: 1123px; background: #ffffff; color: #0f172a; padding: 40px; font-family: sans-serif;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 12px;">
       <div>
@@ -115,10 +112,9 @@
       </div>
     </div>
 
-    <!-- スナップショット 2面比較 -->
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;">
       <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc;">
-        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">前額面（正面）アライメント</h3>
+        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">前額面（正面）アライメント[cite: 7]</h3>
         <img id="repFrontImg" style="width: 100%; height: 260px; object-fit: contain; border-radius: 4px; background: #000;" />
       </div>
       <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc;">
@@ -127,7 +123,6 @@
       </div>
     </div>
 
-    <!-- 主要指標テーブル -->
     <div style="margin-top: 24px;">
       <h3 style="font-size: 13px; font-weight: 700; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 8px; margin-bottom: 10px;">主要キネマティクス測定値[cite: 7]</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
@@ -164,7 +159,6 @@
       </table>
     </div>
 
-    <!-- 臨床所見欄 -->
     <div style="margin-top: 24px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #fafafa;">
       <h4 style="font-size: 11px; font-weight: 700; color: #475569; margin: 0 0 6px 0;">理学療法士 / 担当トレーナー 所見欄[cite: 8]</h4>
       <div style="min-height: 80px; border-bottom: 1px dashed #cbd5e1;"></div>
@@ -176,7 +170,6 @@
   </div>
 
   <script>
-    // Audio Engine
     class AudioEngine {
       constructor() { this.ctx = null; }
       init() {
@@ -184,15 +177,17 @@
         if (this.ctx.state === 'suspended') this.ctx.resume();
       }
       beep(freq = 440, duration = 0.15) {
-        this.init();
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.frequency.setValueAtTime(freq, now);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-        osc.connect(gain); gain.connect(this.ctx.destination);
-        osc.start(now); osc.stop(now + duration + 0.01);
+        try {
+          this.init();
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.start(now); osc.stop(now + duration + 0.01);
+        } catch(e) {}
       }
     }
     const audio = new AudioEngine();
@@ -209,7 +204,6 @@
     const canvasCtx = canvasElement.getContext('2d');
     const loadingStatus = document.getElementById('loadingStatus');
 
-    // セッションステート (Step 1: 前額面 -> Step 2: 矢状面)
     let currentStep = 1; 
     let isRecording = false;
     let isCountingDown = false;
@@ -218,12 +212,14 @@
     let recordedChunks = [];
     let facingUser = true;
 
-    // 蓄積データ & スナップショット
-    let step1Data = [];
-    let step2Data = [];
+    // カメラ管理用変数（多重起動防止）
+    let activeStream = null;
+    let animFrameId = null;
+    let isPoseRunning = false;
+
+    // 蓄積データ
     let step1Snapshot = null;
     let step2Snapshot = null;
-
     let maxRKnee = 0, maxLKnee = 0, maxTrunk = 0, maxPelvisTilt = 0;
     let kneeInDetected = false;
 
@@ -242,7 +238,7 @@
 
     pose.onResults((results) => {
       loadingStatus.classList.add('hidden');
-      const now = performance.now();
+      isPoseRunning = false; // 処理完了フラグ
 
       if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
         canvasElement.width = videoElement.videoWidth;
@@ -260,7 +256,6 @@
         const lKnee = lm[25], rKnee = lm[26];
         const lAnkle = lm[27], rAnkle = lm[28];
         const lFoot = lm[31], rFoot = lm[32];
-        const nose = lm[0];
 
         const rKneeAngle = Math.max(0, 180 - calculateAngle(rHip, rKnee, rAnkle));
         const lKneeAngle = Math.max(0, 180 - calculateAngle(lHip, lKnee, lAnkle));
@@ -269,7 +264,7 @@
         const trunkAngle = Math.abs(Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * 180 / Math.PI);
         const pelvisTilt = Math.abs(Math.atan2(rHip.y - lHip.y, rHip.x - lHip.x) * 180 / Math.PI);
 
-        // ピクトグラム描画
+        // 骨格描画
         SKELETON_PAIRS.forEach(([i, j]) => {
           const p1 = lm[i], p2 = lm[j];
           if (p1.visibility > 0.4 && p2.visibility > 0.4) {
@@ -282,7 +277,6 @@
           }
         });
 
-        // 角度タグ描画
         const drawTag = (pt, label, val) => {
           if (!pt || pt.visibility < 0.45) return;
           const x = pt.x * w, y = pt.y * h;
@@ -307,9 +301,8 @@
           drawTag(midShoulder, 'Trunk', trunkAngle);
         }
 
-        // 録画中のデータ蓄積 & ピークスナップショット更新
         if (isRecording) {
-          const elapsed = ((now - recordStartTime) / 1000.0).toFixed(2);
+          const elapsed = ((performance.now() - recordStartTime) / 1000.0).toFixed(2);
           document.getElementById('recDuration').innerText = elapsed;
 
           if (rKneeAngle > maxRKnee) maxRKnee = rKneeAngle;
@@ -317,49 +310,97 @@
           if (trunkAngle > maxTrunk) maxTrunk = trunkAngle;
           if (pelvisTilt > maxPelvisTilt) maxPelvisTilt = pelvisTilt;
 
-          // 前額面ニーイン判定[cite: 7]
           if (currentStep === 1 && rKneeAngle > 35) {
             const kneeDist = Math.abs(lKnee.x - rKnee.x);
             const ankleDist = Math.abs(lAnkle.x - rAnkle.x);
             if (kneeDist < ankleDist * 0.72) kneeInDetected = true;
           }
 
-          // 最も深く曲がった瞬間のキャンバスを静止画として保持
           if (currentStep === 1 && (rKneeAngle + lKneeAngle) >= (maxRKnee + maxLKnee - 2)) {
-            step1Snapshot = canvasElement.toDataURL('image/jpeg', 0.85);
+            step1Snapshot = canvasElement.toDataURL('image/jpeg', 0.8);
           } else if (currentStep === 2 && trunkAngle >= maxTrunk - 2) {
-            step2Snapshot = canvasElement.toDataURL('image/jpeg', 0.85);
+            step2Snapshot = canvasElement.toDataURL('image/jpeg', 0.8);
           }
         }
       }
     });
 
-    // Native Camera
+    // 安全なカメラ起動 & ループ制御
     async function startCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facingUser ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
-      videoElement.srcObject = stream;
-      await videoElement.play();
-
-      async function loop() {
-        if (!videoElement.paused && !videoElement.ended) {
-          await pose.send({ image: videoElement });
-        }
-        requestAnimationFrame(loop);
+      // 既存ループとストリームを完全停止
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = null;
       }
-      loop();
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => {
+          track.stop();
+          track.enabled = false;
+        });
+        activeStream = null;
+      }
+
+      loadingStatus.classList.remove('hidden');
+
+      try {
+        activeStream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: facingUser ? 'user' : 'environment', 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 } 
+          },
+          audio: false
+        });
+
+        videoElement.srcObject = activeStream;
+        await videoElement.play();
+
+        // 単一ループの安全実行
+        function renderLoop() {
+          if (videoElement.readyState >= 2 && !videoElement.paused && !videoElement.ended) {
+            if (!isPoseRunning) {
+              isPoseRunning = true;
+              pose.send({ image: videoElement }).catch(() => { isPoseRunning = false; });
+            }
+          }
+          animFrameId = requestAnimationFrame(renderLoop);
+        }
+        renderLoop();
+
+      } catch (err) {
+        console.error('Camera Launch Error:', err);
+        loadingStatus.classList.add('hidden');
+        alert('カメラの切り替えに失敗しました。アクセス権限を確認してください。');
+      }
     }
+
     startCamera();
 
-    document.getElementById('flipCamBtn').addEventListener('click', () => {
+    // イン・アウト切替ボタン（連打防止）
+    let isFlipping = false;
+    document.getElementById('flipCamBtn').addEventListener('click', async () => {
+      if (isFlipping) return;
+      isFlipping = true;
+
       facingUser = !facingUser;
       canvasElement.style.transform = facingUser ? 'scaleX(-1)' : 'scaleX(1)';
-      startCamera();
+      await startCamera();
+
+      setTimeout(() => { isFlipping = false; }, 600);
     });
 
-    // iOS対応 MediaRecorder 初期化
+    // 画面復帰時の自動再開（バックグラウンド死防止）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        if (videoElement.paused) videoElement.play().catch(() => {});
+        if (!animFrameId) startCamera();
+      }
+    });
+    window.addEventListener('pageshow', () => {
+      if (videoElement.paused) videoElement.play().catch(() => {});
+    });
+
+    // MediaRecorder 生成
     function createSafeMediaRecorder(stream) {
       const types = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'];
       let selectedType = '';
@@ -369,12 +410,13 @@
       return new MediaRecorder(stream, selectedType ? { mimeType: selectedType } : undefined);
     }
 
-    // 録画＆自動ステップ進行
+    // 録画制御
     const recShutterBtn = document.getElementById('recShutterBtn');
     const shutterInner = document.getElementById('shutterInner');
     const recIndicator = document.getElementById('recIndicator');
     const countdownOverlay = document.getElementById('countdownOverlay');
     const countdownNumber = document.getElementById('countdownNumber');
+    let autoStopTimer = null;
 
     function startStepRecording() {
       recordedChunks = [];
@@ -386,20 +428,23 @@
         if (e.data && e.data.size > 0) recordedChunks.push(e.data);
       };
 
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
-        await handleSaveVideo(blob, `kinema_step${currentStep}_${Date.now()}.mp4`);
+      mediaRecorder.onstop = () => {
+        // メインスレッドのフリーズを防ぐため、次フレームで安全に非同期保存を実行
+        setTimeout(async () => {
+          const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
+          await handleSaveVideo(blob, `kinema_step${currentStep}_${Date.now()}.mp4`);
 
-        if (currentStep === 1) {
-          // Step 1 完了 -> Step 2 への案内表示
-          document.getElementById('stepTransitionModal').classList.remove('hidden');
-          document.getElementById('stepTransitionModal').classList.add('flex');
-        } else {
-          // Step 2 完了 -> A4 PDFの自動生成
-          await generateReportPdf();
-          alert('測定完了！動画とA4レポートPDFを保存しました。');
-          resetToInitialState();
-        }
+          if (currentStep === 1) {
+            document.getElementById('stepTransitionModal').classList.remove('hidden');
+            document.getElementById('stepTransitionModal').classList.add('flex');
+          } else {
+            // PDF生成も安全にキューへ流す
+            setTimeout(async () => {
+              await generateReportPdf();
+              resetToInitialState();
+            }, 300);
+          }
+        }, 100);
       };
 
       mediaRecorder.start(100);
@@ -409,45 +454,50 @@
       shutterInner.className = 'w-5 h-5 rounded-md bg-rose-600';
       audio.beep(659, 0.3);
 
-      // 自動タイマー停止（1ステップあたり7秒間で自動カット）
-      setTimeout(() => {
+      // 7秒で自動停止
+      autoStopTimer = setTimeout(() => {
         if (isRecording) stopStepRecording();
       }, 7000);
     }
 
     function stopStepRecording() {
+      if (autoStopTimer) clearTimeout(autoStopTimer);
       isRecording = false;
       recIndicator.classList.add('hidden');
       recIndicator.classList.remove('flex');
       shutterInner.className = 'w-9 h-9 rounded-full bg-rose-600';
       audio.beep(330, 0.2);
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
     }
 
-    // iOS対応 動画保存ハンドラー
+    // iOS Web Share / フォールバック保存
     async function handleSaveVideo(blob, filename) {
-      const file = new File([blob], filename, { type: blob.type });
-      // iOS Web Share API
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
+      try {
+        const file = new File([blob], filename, { type: blob.type });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file], title: 'KinemaMotion Video' });
           return;
-        } catch (err) {
-          console.warn('Share cancelled or failed, fallback to download anchor', err);
         }
+      } catch (err) {
+        console.warn('Share canceled/failed, using fallback anchor:', err);
       }
-      // 通常のブラウザフォールバック
+      // アンカークリックによるフォールバック
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = filename; a.click();
-      URL.revokeObjectURL(url);
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
-    // シャッターボタン制御
+    // カウントダウンシャッター
     recShutterBtn.addEventListener('click', () => {
       if (isCountingDown) return;
       if (!isRecording) {
-        // カウントダウン開始
         isCountingDown = true;
         countdownOverlay.classList.remove('hidden');
         countdownOverlay.classList.add('flex');
@@ -473,7 +523,6 @@
       }
     });
 
-    // Step 2 開始ボタン
     document.getElementById('startStep2Btn').addEventListener('click', () => {
       document.getElementById('stepTransitionModal').classList.add('hidden');
       document.getElementById('stepTransitionModal').classList.remove('flex');
@@ -486,42 +535,45 @@
       audio.beep(880, 0.2);
     });
 
-    // A4 PDF 自動生成エンジン[cite: 7]
+    // 軽量A4 PDF生成
     async function generateReportPdf() {
-      document.getElementById('repDate').innerText = new Date().toLocaleDateString('ja-JP');
-      document.getElementById('repId').innerText = Math.floor(1000 + Math.random() * 9000);
+      try {
+        document.getElementById('repDate').innerText = new Date().toLocaleDateString('ja-JP');
+        document.getElementById('repId').innerText = Math.floor(1000 + Math.random() * 9000);
 
-      if (step1Snapshot) document.getElementById('repFrontImg').src = step1Snapshot;
-      if (step2Snapshot) document.getElementById('repSagittalImg').src = step2Snapshot;
+        if (step1Snapshot) document.getElementById('repFrontImg').src = step1Snapshot;
+        if (step2Snapshot) document.getElementById('repSagittalImg').src = step2Snapshot;
 
-      document.getElementById('repRKnee').innerText = `${maxRKnee.toFixed(1)}°`;
-      document.getElementById('repLKnee').innerText = `${maxLKnee.toFixed(1)}°`;
-      const diff = Math.abs(maxRKnee - maxLKnee);
-      document.getElementById('repKneeSym').innerText = diff <= 5.0 ? '左右対称 (良好)' : `差 ${diff.toFixed(1)}° (要注意)`;
-      document.getElementById('repTrunk').innerText = `${maxTrunk.toFixed(1)}°`;
-      document.getElementById('repPelvis').innerText = `${maxPelvisTilt.toFixed(1)}°`;
+        document.getElementById('repRKnee').innerText = `${maxRKnee.toFixed(1)}°`;
+        document.getElementById('repLKnee').innerText = `${maxLKnee.toFixed(1)}°`;
+        const diff = Math.abs(maxRKnee - maxLKnee);
+        document.getElementById('repKneeSym').innerText = diff <= 5.0 ? '左右対称 (良好)' : `差 ${diff.toFixed(1)}° (要注意)`;
+        document.getElementById('repTrunk').innerText = `${maxTrunk.toFixed(1)}°`;
+        document.getElementById('repPelvis').innerText = `${maxPelvisTilt.toFixed(1)}°`;
 
-      const kneeInLabel = document.getElementById('repKneeIn');
-      if (kneeInDetected) {
-        kneeInLabel.innerText = '⚠️ 動的膝外反 (ニーイン) を検知[cite: 7]';
-        kneeInLabel.style.color = '#dc2626';
-      } else {
-        kneeInLabel.innerText = '検知なし (正常アライメント)[cite: 7]';
-        kneeInLabel.style.color = '#16a34a';
+        const kneeInLabel = document.getElementById('repKneeIn');
+        if (kneeInDetected) {
+          kneeInLabel.innerText = '⚠️ 動的膝外反 (ニーイン) を検知[cite: 7]';
+          kneeInLabel.style.color = '#dc2626';
+        } else {
+          kneeInLabel.innerText = '検知なし (正常アライメント)[cite: 7]';
+          kneeInLabel.style.color = '#16a34a';
+        }
+
+        const container = document.getElementById('reportContainer');
+        const canvas = await html2canvas(container, { scale: 1.5, useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.85);
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'pt', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`kinema_report_${Date.now()}.pdf`);
+      } catch (e) {
+        console.error('PDF Generation Failed:', e);
       }
-
-      // レンダリング & PDF出力
-      const container = document.getElementById('reportContainer');
-      const canvas = await html2canvas(container, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'pt', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`kinema_report_${Date.now()}.pdf`);
     }
 
     function resetToInitialState() {
