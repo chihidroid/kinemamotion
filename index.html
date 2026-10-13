@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>KinemaMotion - Biomechanics Pro</title>
+  
+  <!-- PWA & フルスクリーン最適化メタタグ -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KinemaMotion">
+  <meta name="mobile-web-app-capable" content="yes">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
 
@@ -16,9 +23,16 @@
       -webkit-user-select: none;
     }
     .onform-glass {
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.88);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
+    }
+    /* iOS セーフエリアの余白対応 */
+    .safe-top {
+      padding-top: max(8px, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
     }
     input[type="checkbox"] { accent-color: #06b6d4; }
   </style>
@@ -26,28 +40,27 @@
 <body class="h-[100dvh] w-screen flex flex-col justify-between overflow-hidden font-sans">
 
   <!-- ========================================== -->
-  <!-- 1. TOP TOOLBAR (OnForm Header)             -->
+  <!-- 1. TOP TOOLBAR (ノッチ回避セーフエリア対応)    -->
   <!-- ========================================== -->
-  <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-3 sm:px-4 py-2 flex items-center justify-between">
+  <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-3 sm:px-4 py-2 safe-top flex items-center justify-between shrink-0">
     <!-- ロゴ & 面セレクター -->
-    <div class="flex items-center gap-2 sm:gap-3">
+    <div class="flex items-center gap-2">
       <div class="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center font-black text-xs text-black shadow-md shadow-cyan-500/20">KM</div>
       
-      <!-- 撮影面セレクター (前額面 vs 矢状面) -->
       <div class="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-700/80">
         <button id="planeFrontalBtn" class="px-2 py-1 rounded text-[11px] font-bold bg-cyan-600 text-white transition-all">前額面 (正面)</button>
         <button id="planeSagittalBtn" class="px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white transition-all">矢状面 (側面)</button>
       </div>
     </div>
 
-    <!-- モード切り替え (ROM vs CMJ) -->
+    <!-- モード切り替え -->
     <div class="flex items-center bg-slate-900 p-0.5 rounded-lg border border-slate-700/80">
       <button id="tabRomBtn" class="px-2 py-1 rounded text-[11px] font-bold bg-slate-800 text-cyan-400 border border-cyan-500/30">可動域</button>
       <button id="tabJumpBtn" class="px-2 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white">CMJジャンプ</button>
     </div>
 
-    <!-- 右側アクション (水準器 & 反転) -->
-    <div class="flex items-center gap-1.5 sm:gap-2">
+    <!-- 右側アクション -->
+    <div class="flex items-center gap-1.5">
       <div id="tiltIndicator" class="hidden sm:flex items-center gap-1 font-mono text-[10px]">
         <span id="shTiltBadge" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">肩: 0.0°</span>
         <span id="pelTiltBadge" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">骨盤: 0.0°</span>
@@ -59,11 +72,12 @@
   </header>
 
   <!-- ========================================== -->
-  <!-- 2. MAIN VIEWPORT (Full HUD)                -->
+  <!-- 2. MAIN VIEWPORT (見切れ防止・完全フィット)   -->
   <!-- ========================================== -->
-  <main class="flex-1 relative w-full h-full flex items-center justify-center bg-black overflow-hidden">
+  <main class="flex-1 relative w-full min-h-0 flex items-center justify-center bg-black overflow-hidden">
     <video id="inputVideo" class="hidden" autoplay playsinline muted></video>
-    <canvas id="outputCanvas" class="w-full h-full object-contain"></canvas>
+    <!-- 全画面でアスペクト比を保持して上下見切れを防止 -->
+    <canvas id="outputCanvas" class="w-full h-full object-contain max-h-full"></canvas>
 
     <!-- 初期ロード画面 -->
     <div id="loadingStatus" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-cyan-400 text-xs gap-3 z-40">
@@ -71,7 +85,7 @@
       <span id="loadingMessage" class="font-mono">AIエンジン起動中...</span>
     </div>
 
-    <!-- 巨大カウントダウン (3・2・1) -->
+    <!-- 巨大カウントダウン -->
     <div id="countdownOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-40 pointer-events-none">
       <div id="countdownNumber" class="text-9xl font-black text-cyan-400 font-mono animate-bounce drop-shadow-[0_0_35px_rgba(6,182,212,0.8)]">3</div>
     </div>
@@ -83,7 +97,7 @@
     </div>
 
     <!-- CMJ バリデーション枠ガイド -->
-    <div id="jumpGuideBox" class="absolute inset-y-10 inset-x-8 sm:inset-y-12 sm:inset-x-36 border-2 border-dashed border-amber-500/60 rounded-3xl pointer-events-none hidden flex-col items-center justify-between p-4 z-20 transition-all duration-300">
+    <div id="jumpGuideBox" class="absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-dashed border-amber-500/60 rounded-3xl pointer-events-none hidden flex-col items-center justify-between p-3 z-20 transition-all duration-300">
       <div id="guideTopTag" class="px-3 py-1 rounded-full bg-amber-950/90 text-amber-300 border border-amber-600 text-[11px] font-bold tracking-wide backdrop-blur">
         全身を枠内に収めてください
       </div>
@@ -92,13 +106,13 @@
     </div>
 
     <!-- CMJ 結果カード -->
-    <div id="jumpFloatCard" class="absolute top-12 sm:top-4 right-3 hidden flex-col gap-1 p-3 rounded-xl onform-glass border border-indigo-500/50 z-20 min-w-[135px]">
+    <div id="jumpFloatCard" class="absolute top-3 right-3 hidden flex-col gap-1 p-2.5 rounded-xl onform-glass border border-indigo-500/50 z-20 min-w-[130px]">
       <div class="flex items-center justify-between">
         <span class="text-[9px] text-slate-400 font-bold uppercase">CMJ JUMP</span>
         <span id="jumpStateLabel" class="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-mono border border-amber-800">ALIGNING</span>
       </div>
       <div class="flex items-baseline gap-1">
-        <span id="jumpHeightVal" class="text-3xl font-black font-mono text-white">0.0</span>
+        <span id="jumpHeightVal" class="text-2xl font-black font-mono text-white">0.0</span>
         <span class="text-xs font-bold text-slate-400">cm</span>
       </div>
       <div class="text-[10px] text-slate-300 font-mono flex justify-between">
@@ -112,69 +126,77 @@
     </div>
 
     <!-- ニーイン警告バナー -->
-    <div id="alertBanner" class="absolute bottom-4 inset-x-4 py-2 text-center text-xs font-bold rounded-xl hidden backdrop-blur z-20 shadow-xl border border-rose-500 bg-rose-600/90 text-white"></div>
+    <div id="alertBanner" class="absolute bottom-3 inset-x-4 py-2 text-center text-xs font-bold rounded-xl hidden backdrop-blur z-20 shadow-xl border border-rose-500 bg-rose-600/90 text-white"></div>
   </main>
 
   <!-- ========================================== -->
-  <!-- 3. BOTTOM CONTROL BAR                      -->
+  <!-- 3. BOTTOM CONTROL BAR (ホームバー対応)       -->
   <!-- ========================================== -->
-  <footer class="w-full z-30 onform-glass border-t border-slate-800/80 px-4 py-3 flex items-center justify-between">
-    <button id="openJointMenuBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-cyan-400 transition-colors w-16">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-      <span class="text-[10px] font-medium leading-none">設定HUD</span>
-    </button>
+  <footer class="w-full z-30 onform-glass border-t border-slate-800/80 px-4 py-2 safe-bottom flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-1">
+      <!-- 設定HUD -->
+      <button id="openJointMenuBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-cyan-400 transition-colors w-12 sm:w-16">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        <span class="text-[9px] sm:text-[10px] font-medium leading-none">設定HUD</span>
+      </button>
 
-    <!-- シャッター／RECボタン -->
-    <div class="flex items-center justify-center">
-      <button id="recShutterBtn" class="relative w-14 h-14 rounded-full border-4 border-slate-300 flex items-center justify-center shadow-lg active:scale-95 transition-all">
-        <div id="shutterInner" class="w-10 h-10 rounded-full bg-rose-600 transition-all duration-200"></div>
+      <!-- PWA / 全画面ガイドボタン -->
+      <button id="pwaInstallBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-amber-400 transition-colors w-12 sm:w-16">
+        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+        </svg>
+        <span class="text-[9px] sm:text-[10px] font-medium leading-none text-amber-400">全画面化</span>
       </button>
     </div>
 
-    <!-- CSV手動保存ボタン -->
-    <button id="exportCsvBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors w-16">
+    <!-- シャッター／RECボタン -->
+    <div class="flex items-center justify-center">
+      <button id="recShutterBtn" class="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full border-4 border-slate-300 flex items-center justify-center shadow-lg active:scale-95 transition-all">
+        <div id="shutterInner" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-rose-600 transition-all duration-200"></div>
+      </button>
+    </div>
+
+    <!-- CSV保存ボタン -->
+    <button id="exportCsvBtn" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-emerald-400 transition-colors w-12 sm:w-16">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-      <span class="text-[10px] font-medium leading-none">CSV保存</span>
+      <span class="text-[9px] sm:text-[10px] font-medium leading-none">CSV保存</span>
     </button>
   </footer>
 
   <!-- ========================================== -->
-  <!-- 4. 撮影前プロトコル確認ゲート (モーダル)     -->
+  <!-- 4. PWA案内ポップアップモーダル               -->
   <!-- ========================================== -->
-  <div id="protocolModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
-      <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
-        <div class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></div>
-        <h3 class="text-sm font-bold text-white">測定前プロトコル・ノイズ防止確認</h3>
+  <div id="pwaGuideModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="text-amber-400 text-base">📲</span>
+          <h3 class="text-xs font-bold text-white">完全全画面（アプリ化）の手順</h3>
+        </div>
+        <button id="closePwaGuideBtn" class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800">閉じる</button>
       </div>
 
       <p class="text-xs text-slate-300 leading-relaxed">
-        バイオメカニクス解析の再現性を担保するため、以下の3点を確認してください。
+        Safariのアドレスバーを消して、カメラを画面いっぱいに広げるにはホーム画面へ追加します。
       </p>
 
-      <div class="flex flex-col gap-2.5 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
-        <label class="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" id="chkProtTripod" class="mt-0.5" checked>
-          <span class="text-slate-200"><strong>三脚・水平固定</strong>（手持ち撮影は厳禁。カメラ高は大転子付近）</span>
-        </label>
-        <label class="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" id="chkProtDistance" class="mt-0.5" checked>
-          <span class="text-slate-200"><strong>撮影距離 約2.5〜3m</strong>（頭頂〜足先まで画角に完全に収める）</span>
-        </label>
-        <label class="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" id="chkProtRule" class="mt-0.5" checked>
-          <span class="text-slate-200"><strong>動作ルール</strong>（手は腰、着地時に膝を過剰に曲げない）</span>
-        </label>
+      <div class="flex flex-col gap-2.5 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800 font-sans">
+        <div class="flex items-center gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">1</span>
+          <span class="text-slate-200">画面下の <strong>共有アイコン</strong>（四角に上矢印）をタップ</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">2</span>
+          <span class="text-slate-200">メニューから <strong>「ホーム画面に追加」</strong> を選択</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">3</span>
+          <span class="text-slate-200">右上の <strong>「追加」</strong> を押すと完了</span>
+        </div>
       </div>
 
-      <div class="flex items-center justify-between pt-1">
-        <label class="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer">
-          <input type="checkbox" id="chkSkipProtocol">
-          <span>次回からこの確認をスキップ</span>
-        </label>
-        <button id="closeProtocolBtn" class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-md">
-          測定画面へ
-        </button>
+      <div class="text-[11px] text-slate-400 text-center">
+        ホーム画面のアイコンから起動すると、余白ゼロのフルスクリーンになります。
       </div>
     </div>
   </div>
@@ -183,7 +205,7 @@
   <!-- 5. 設定HUD ドロワー                        -->
   <!-- ========================================== -->
   <div id="jointDrawer" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex-col justify-end">
-    <div class="w-full max-w-lg mx-auto bg-slate-900 border-t border-slate-700 rounded-t-2xl p-4 flex flex-col gap-3 shadow-2xl max-h-[85vh] overflow-y-auto">
+    <div class="w-full max-w-lg mx-auto bg-slate-900 border-t border-slate-700 rounded-t-2xl p-4 safe-bottom flex flex-col gap-3 shadow-2xl max-h-[85vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2">
         <span class="text-xs font-bold text-white flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
@@ -227,7 +249,7 @@
   </div>
 
   <script>
-    // 1. Audio Engine
+    // Audio Engine
     class AudioEngine {
       constructor() { this.ctx = null; this.lastBeep = 0; }
       init() {
@@ -297,7 +319,7 @@
     }
     const audio = new AudioEngine();
 
-    // 2. Math Helpers
+    // Math Helpers
     function calculateAngle(a, b, c) {
       const radians = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
       let angle = Math.abs((radians * 180.0) / Math.PI);
@@ -311,18 +333,17 @@
       return Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
     }
 
-    // 3. States & Elements
+    // Elements & States
     const videoElement = document.getElementById('inputVideo');
     const canvasElement = document.getElementById('outputCanvas');
     const canvasCtx = canvasElement.getContext('2d');
     const loadingStatus = document.getElementById('loadingStatus');
     const loadingMessage = document.getElementById('loadingMessage');
 
-    let currentPlane = 'frontal'; // 'frontal' or 'sagittal'
-    let currentMode = 'rom';       // 'rom' or 'jump'
+    let currentPlane = 'frontal';
+    let currentMode = 'rom';
     let facingUser = true;
 
-    // 録画＆カウントダウン
     let isCountingDown = false;
     let isRecording = false;
     let recordStartTime = 0;
@@ -330,13 +351,11 @@
     let mediaRecorder = null;
     let recordedVideoBlobs = [];
 
-    // 重心(COM) & 加速度
     let prevCom = null;
     let prevComVel = { x: 0, y: 0 };
     let comAcc = { x: 0, y: 0 };
     let peakTakeoffAcc = 0;
 
-    // CMJ バリデーション & 測定
     let isPoseValidForJump = false;
     let baselineFootY = null;
     let jumpPhase = 'aligning';
@@ -351,7 +370,7 @@
       [24, 26], [26, 28], [28, 30], [28, 32], [30, 32]
     ];
 
-    // 4. MediaPipe Pose Setup
+    // MediaPipe Pose
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
     });
@@ -388,7 +407,6 @@
         const lFoot = lm[31],     rFoot = lm[32];
         const nose = lm[0];
 
-        // 角度算出
         const rKneeAngle = Math.max(0, 180 - calculateAngle(rHip, rKnee, rAnkle));
         const lKneeAngle = Math.max(0, 180 - calculateAngle(lHip, lKnee, lAnkle));
         const rHipAngle = Math.max(0, 180 - calculateAngle(rShoulder, rHip, rKnee));
@@ -400,7 +418,6 @@
         const midShoulder = { x: (lShoulder.x + rShoulder.x) / 2, y: (lShoulder.y + rShoulder.y) / 2 };
         const trunkAngle = Math.abs(Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * 180 / Math.PI);
 
-        // 丹田（COM）位置 & 加速度
         const tanden = {
           x: midHip.x,
           y: midHip.y + (lKnee.y - midHip.y) * 0.12
@@ -416,7 +433,6 @@
         }
         prevCom = { x: tanden.x, y: tanden.y };
 
-        // 水平度算出
         const shoulderTilt = calculateHorizontalTilt(lShoulder, rShoulder);
         const pelvisTilt = calculateHorizontalTilt(lHip, rHip);
         const isShoulderLevel = shoulderTilt <= 2.5;
@@ -426,14 +442,12 @@
           const el = document.getElementById(id);
           if (!el) return;
           el.innerText = `${label}: ${deg.toFixed(1)}°`;
-          el.className = isLevel ? 'px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500 font-bold' : 'px-2 py-0.5 rounded bg-slate-900/80 text-slate-400 border border-slate-700';
+          el.className = isLevel ? 'px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-500 font-bold' : 'px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700';
         };
         updateTiltBadge('shTiltBadge', '肩', shoulderTilt, isShoulderLevel);
         updateTiltBadge('pelTiltBadge', '骨盤', pelvisTilt, isPelvisLevel);
 
-        // ----------------------------------------------------
         // CMJ精密測定
-        // ----------------------------------------------------
         if (currentMode === 'jump') {
           const guideBox = document.getElementById('jumpGuideBox');
           const guideTop = document.getElementById('guideTopTag');
@@ -446,27 +460,26 @@
             nose.y > 0.04 && lAnkle.y < 0.96 && rAnkle.y < 0.96
           );
 
-          // 前額面なら正面チェック、矢状面なら側面チェック
           const isAlignmentCorrect = (currentPlane === 'frontal') 
             ? (Math.abs(lShoulder.z - rShoulder.z) < 0.16 && Math.abs(lHip.z - rHip.z) < 0.16)
-            : (Math.abs(lShoulder.z - rShoulder.z) >= 0.12); // 側面を向いていること
+            : (Math.abs(lShoulder.z - rShoulder.z) >= 0.12);
 
           if (!isFullBodyVisible) {
             isPoseValidForJump = false;
-            guideBox.className = 'absolute inset-y-10 inset-x-8 sm:inset-y-12 sm:inset-x-36 border-2 border-dashed border-rose-500/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-4 z-20';
+            guideBox.className = 'absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-dashed border-rose-500/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20';
             guideTop.innerText = '全身が枠に入っていません。下がってください';
             stateLabel.innerText = 'STEP BACK';
           } 
           else if (!isAlignmentCorrect) {
             isPoseValidForJump = false;
-            guideBox.className = 'absolute inset-y-10 inset-x-8 sm:inset-y-12 sm:inset-x-36 border-2 border-dashed border-amber-500/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-4 z-20';
+            guideBox.className = 'absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-dashed border-amber-500/80 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20';
             guideTop.innerText = (currentPlane === 'frontal') ? '真正面を向いてください' : '真横（側面）を向いてください';
             stateLabel.innerText = 'ALIGN PLANE';
           }
           else {
             if (!isPoseValidForJump) audio.playReady();
             isPoseValidForJump = true;
-            guideBox.className = 'absolute inset-y-10 inset-x-8 sm:inset-y-12 sm:inset-x-36 border-2 border-emerald-400 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-4 z-20 shadow-[0_0_25px_rgba(16,185,129,0.35)]';
+            guideBox.className = 'absolute inset-y-6 inset-x-6 sm:inset-y-10 sm:inset-x-32 border-2 border-emerald-400 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20 shadow-[0_0_25px_rgba(16,185,129,0.35)]';
             guideTop.innerText = `READY - ${currentPlane === 'frontal' ? '前額面' : '矢状面'} 認識完了`;
           }
 
@@ -510,7 +523,6 @@
               peakTakeoffAcc = 0;
             }
 
-            // 前額面時のみニーイン判定
             if (currentPlane === 'frontal') {
               const kneeDist = Math.abs(lKnee.x - rKnee.x);
               const ankleDist = Math.abs(lAnkle.x - rAnkle.x);
@@ -519,7 +531,7 @@
               if (isKneeIn) {
                 audio.playAlert();
                 banner.innerText = '⚠️ CAUTION: ニーイン (動的膝外反) 警告';
-                banner.className = 'absolute bottom-4 inset-x-4 py-2 text-center text-xs font-bold rounded-xl block bg-rose-600/90 text-white border border-rose-400 z-20 shadow-xl';
+                banner.className = 'absolute bottom-3 inset-x-4 py-2 text-center text-xs font-bold rounded-xl block bg-rose-600/90 text-white border border-rose-400 z-20 shadow-xl';
               } else {
                 banner.className = 'hidden';
               }
@@ -550,7 +562,6 @@
           }
         });
 
-        // 背骨
         canvasCtx.beginPath();
         canvasCtx.moveTo(midShoulder.x * w, midShoulder.y * h);
         canvasCtx.lineTo(midHip.x * w, midHip.y * h);
@@ -558,8 +569,14 @@
         canvasCtx.lineWidth = 3.5;
         canvasCtx.stroke();
 
-        // 頭部円
         if (nose.visibility > 0.4) {
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(midShoulder.x * w, midShoulder.y * h);
+          canvasCtx.lineTo(nose.x * w, nose.y * h);
+          canvasCtx.strokeStyle = '#94a3b8';
+          canvasCtx.lineWidth = 3.5;
+          canvasCtx.stroke();
+
           canvasCtx.beginPath();
           canvasCtx.arc(nose.x * w, nose.y * h, 13, 0, 2 * Math.PI);
           canvasCtx.fillStyle = baseColor;
@@ -569,7 +586,6 @@
           canvasCtx.stroke();
         }
 
-        // 丹田マーカー ＆ 加速度ベクトル
         const tX = tanden.x * w;
         const tY = tanden.y * h;
 
@@ -612,7 +628,6 @@
           }
         }
 
-        // 角度HUDタグ描画
         const drawTag = (pt, label, val, color = '#06b6d4') => {
           if (!pt || pt.visibility < 0.45) return;
           const x = pt.x * w;
@@ -647,7 +662,6 @@
           canvasCtx.restore();
         };
 
-        // 矢状面モードならカメラに近い側の脚を優先
         if (currentPlane === 'sagittal') {
           const isRightCloser = rHip.z < lHip.z;
           if (isRightCloser) {
@@ -661,7 +675,6 @@
           }
           if (document.getElementById('chkTrunk').checked) drawTag(midShoulder, 'Trunk', trunkAngle, '#f43f5e');
         } else {
-          // 前額面モード
           if (document.getElementById('chkRKnee').checked) drawTag(rKnee, 'R-Knee', rKneeAngle, '#06b6d4');
           if (document.getElementById('chkLKnee').checked) drawTag(lKnee, 'L-Knee', lKneeAngle, '#38bdf8');
           if (document.getElementById('chkRHip').checked) drawTag(rHip, 'R-Hip', rHipAngle, '#818cf8');
@@ -669,7 +682,6 @@
           if (document.getElementById('chkTrunk').checked) drawTag(midShoulder, 'Trunk', trunkAngle, '#f43f5e');
         }
 
-        // CSV用データ蓄積
         if (isRecording) {
           const elapsed = ((now - recordStartTime) / 1000.0).toFixed(3);
           document.getElementById('recDuration').innerText = elapsed;
@@ -692,7 +704,7 @@
       }
     });
 
-    // 5. Native Camera Access
+    // Native Camera Access
     let currentStream = null;
 
     async function startCamera(isUser) {
@@ -740,7 +752,7 @@
       startCamera(!facingUser);
     });
 
-    // 6. 撮影面切り替え (前額面 vs 矢状面)
+    // 面セレクター
     const planeFrontalBtn = document.getElementById('planeFrontalBtn');
     const planeSagittalBtn = document.getElementById('planeSagittalBtn');
     const tiltIndicator = document.getElementById('tiltIndicator');
@@ -762,7 +774,7 @@
       document.getElementById('alertBanner').className = 'hidden';
     });
 
-    // モード切替 (ROM vs Jump)
+    // モード切替
     const tabRomBtn = document.getElementById('tabRomBtn');
     const tabJumpBtn = document.getElementById('tabJumpBtn');
     const jumpFloatCard = document.getElementById('jumpFloatCard');
@@ -791,7 +803,7 @@
       isPoseValidForJump = false;
     });
 
-    // 7. カウントダウン (3・2・1) & 録画トリガー
+    // カウントダウン (3・2・1) & 録画
     const recShutterBtn = document.getElementById('recShutterBtn');
     const shutterInner = document.getElementById('shutterInner');
     const recIndicator = document.getElementById('recIndicator');
@@ -850,7 +862,7 @@
       isRecording = true;
       recIndicator.classList.remove('hidden');
       recIndicator.classList.add('flex');
-      shutterInner.className = 'w-6 h-6 rounded-md bg-rose-600 transition-all duration-200';
+      shutterInner.className = 'w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-rose-600 transition-all duration-200';
       audio.playChime();
     }
 
@@ -884,13 +896,13 @@
         isRecording = false;
         recIndicator.classList.add('hidden');
         recIndicator.classList.remove('flex');
-        shutterInner.className = 'w-10 h-10 rounded-full bg-rose-600 transition-all duration-200';
+        shutterInner.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-rose-600 transition-all duration-200';
         audio.playAlert();
         if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
       }
     });
 
-    // 8. 手動CSV保存
+    // CSV手動保存
     document.getElementById('exportCsvBtn').addEventListener('click', () => {
       if (!recordedDataset.length) {
         alert('保存する測定データがありません。');
@@ -908,21 +920,31 @@
       a.click();
     });
 
-    // 9. プロトコル確認モーダル制御
-    const protocolModal = document.getElementById('protocolModal');
-    const closeProtocolBtn = document.getElementById('closeProtocolBtn');
-    const chkSkipProtocol = document.getElementById('chkSkipProtocol');
+    // PWAガイド制御
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
 
-    if (localStorage.getItem('skip_kinema_protocol') === 'true') {
-      protocolModal.classList.add('hidden');
-    }
+    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+    const pwaGuideModal = document.getElementById('pwaGuideModal');
+    const closePwaGuideBtn = document.getElementById('closePwaGuideBtn');
 
-    closeProtocolBtn.addEventListener('click', () => {
-      if (chkSkipProtocol.checked) {
-        localStorage.setItem('skip_kinema_protocol', 'true');
+    pwaInstallBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      } else {
+        pwaGuideModal.classList.remove('hidden');
+        pwaGuideModal.classList.add('flex');
       }
-      protocolModal.classList.add('hidden');
-      audio.init();
+    });
+
+    closePwaGuideBtn.addEventListener('click', () => {
+      pwaGuideModal.classList.add('hidden');
+      pwaGuideModal.classList.remove('flex');
     });
 
     // ドロワー制御
