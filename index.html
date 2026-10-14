@@ -24,15 +24,17 @@
 </head>
 <body class="h-[100dvh] w-screen flex flex-col justify-between overflow-hidden font-sans">
 
-  <!-- TOP TOOLBAR -->
+  <!-- TOP TOOLBAR (ポータル戻るリンク付き) -->
   <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-3 py-2 safe-top flex items-center justify-between shrink-0">
-    <div class="flex items-center gap-2">
-      <div class="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center font-black text-xs text-black">KM</div>
+    <a href="portal.html" class="flex items-center gap-2 group active:opacity-70 transition-opacity">
+      <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-xs group-hover:border-cyan-400 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+      </div>
       <div class="flex flex-col">
         <span class="text-xs font-bold leading-none text-white">KinemaMotion</span>
         <span id="stepBadge" class="text-[9px] text-cyan-400 font-mono font-bold">STEP 1: 前額面 (正面)</span>
       </div>
-    </div>
+    </a>
 
     <!-- ステップ進捗インジケータ -->
     <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
@@ -99,12 +101,12 @@
     </div>
   </footer>
 
-  <!-- オフスクリーン A4レポート生成用テンプレート[cite: 7] -->
+  <!-- オフスクリーン A4レポート生成用テンプレート -->
   <div id="reportContainer" style="position: absolute; left: -9999px; top: 0; width: 794px; min-height: 1123px; background: #ffffff; color: #0f172a; padding: 40px; font-family: sans-serif;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0284c7; padding-bottom: 12px;">
       <div>
         <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">バイオメカニクス動作解析レポート</h1>
-        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">百武整形外科病院 スポーツ事業部 / KinemaMotion 評価システム[cite: 2, 7]</p>
+        <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">百武整形外科病院 スポーツ事業部 / KinemaMotion 評価システム</p>
       </div>
       <div style="text-align: right; font-size: 11px; color: #475569;">
         <p style="margin: 0;">測定日: <span id="repDate">-</span></p>
@@ -114,17 +116,17 @@
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px;">
       <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc;">
-        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">前額面（正面）アライメント[cite: 7]</h3>
+        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">前額面（正面）アライメント</h3>
         <img id="repFrontImg" style="width: 100%; height: 260px; object-fit: contain; border-radius: 4px; background: #000;" />
       </div>
       <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc;">
-        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">矢状面（側面）キネマティクス[cite: 7]</h3>
+        <h3 style="font-size: 12px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">矢状面（側面）キネマティクス</h3>
         <img id="repSagittalImg" style="width: 100%; height: 260px; object-fit: contain; border-radius: 4px; background: #000;" />
       </div>
     </div>
 
     <div style="margin-top: 24px;">
-      <h3 style="font-size: 13px; font-weight: 700; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 8px; margin-bottom: 10px;">主要キネマティクス測定値[cite: 7]</h3>
+      <h3 style="font-size: 13px; font-weight: 700; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 8px; margin-bottom: 10px;">主要キネマティクス測定値</h3>
       <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
         <thead>
           <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
@@ -142,7 +144,7 @@
             <td id="repKneeSym" style="padding: 8px; text-align: center;">-</td>
           </tr>
           <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px; font-weight: 600;">体幹前傾角度 (Trunk Lean)[cite: 7]</td>
+            <td style="padding: 8px; font-weight: 600;">体幹前傾角度 (Trunk Lean)</td>
             <td colspan="2" id="repTrunk" style="padding: 8px; text-align: center;">-</td>
             <td id="repTrunkEval" style="padding: 8px; text-align: center;">適正範囲</td>
           </tr>
@@ -152,7 +154,7 @@
             <td id="repPelvisEval" style="padding: 8px; text-align: center;">良好</td>
           </tr>
           <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 8px; font-weight: 600;">動的膝外反 (Knee-in) 警告[cite: 7]</td>
+            <td style="padding: 8px; font-weight: 600;">動的膝外反 (Knee-in) 警告</td>
             <td colspan="3" id="repKneeIn" style="padding: 8px; text-align: center; font-weight: bold; color: #16a34a;">検知なし (正常)</td>
           </tr>
         </tbody>
@@ -160,11 +162,11 @@
     </div>
 
     <div style="margin-top: 24px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #fafafa;">
-      <h4 style="font-size: 11px; font-weight: 700; color: #475569; margin: 0 0 6px 0;">理学療法士 / 担当トレーナー 所見欄[cite: 8]</h4>
+      <h4 style="font-size: 11px; font-weight: 700; color: #475569; margin: 0 0 6px 0;">理学療法士 / 担当トレーナー 所見欄</h4>
       <div style="min-height: 80px; border-bottom: 1px dashed #cbd5e1;"></div>
       <div style="display: flex; justify-content: flex-end; gap: 24px; margin-top: 12px; font-size: 10px; color: #64748b;">
-        <span>担当PT: ____________________[cite: 8]</span>
-        <span>確認ドクター: ____________________[cite: 8]</span>
+        <span>担当PT: ____________________</span>
+        <span>確認ドクター: ____________________</span>
       </div>
     </div>
   </div>
@@ -212,12 +214,10 @@
     let recordedChunks = [];
     let facingUser = true;
 
-    // カメラ管理用変数（多重起動防止）
     let activeStream = null;
     let animFrameId = null;
     let isPoseRunning = false;
 
-    // 蓄積データ
     let step1Snapshot = null;
     let step2Snapshot = null;
     let maxRKnee = 0, maxLKnee = 0, maxTrunk = 0, maxPelvisTilt = 0;
@@ -230,7 +230,6 @@
       [24, 26], [26, 28], [28, 30], [28, 32], [30, 32]
     ];
 
-    // MediaPipe Pose
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
     });
@@ -238,7 +237,7 @@
 
     pose.onResults((results) => {
       loadingStatus.classList.add('hidden');
-      isPoseRunning = false; // 処理完了フラグ
+      isPoseRunning = false;
 
       if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
         canvasElement.width = videoElement.videoWidth;
@@ -255,7 +254,6 @@
         const lHip = lm[23], rHip = lm[24];
         const lKnee = lm[25], rKnee = lm[26];
         const lAnkle = lm[27], rAnkle = lm[28];
-        const lFoot = lm[31], rFoot = lm[32];
 
         const rKneeAngle = Math.max(0, 180 - calculateAngle(rHip, rKnee, rAnkle));
         const lKneeAngle = Math.max(0, 180 - calculateAngle(lHip, lKnee, lAnkle));
@@ -264,7 +262,6 @@
         const trunkAngle = Math.abs(Math.atan2(midShoulder.x - midHip.x, midHip.y - midShoulder.y) * 180 / Math.PI);
         const pelvisTilt = Math.abs(Math.atan2(rHip.y - lHip.y, rHip.x - lHip.x) * 180 / Math.PI);
 
-        // 骨格描画
         SKELETON_PAIRS.forEach(([i, j]) => {
           const p1 = lm[i], p2 = lm[j];
           if (p1.visibility > 0.4 && p2.visibility > 0.4) {
@@ -325,9 +322,7 @@
       }
     });
 
-    // 安全なカメラ起動 & ループ制御
     async function startCamera() {
-      // 既存ループとストリームを完全停止
       if (animFrameId) {
         cancelAnimationFrame(animFrameId);
         animFrameId = null;
@@ -355,7 +350,6 @@
         videoElement.srcObject = activeStream;
         await videoElement.play();
 
-        // 単一ループの安全実行
         function renderLoop() {
           if (videoElement.readyState >= 2 && !videoElement.paused && !videoElement.ended) {
             if (!isPoseRunning) {
@@ -376,7 +370,6 @@
 
     startCamera();
 
-    // イン・アウト切替ボタン（連打防止）
     let isFlipping = false;
     document.getElementById('flipCamBtn').addEventListener('click', async () => {
       if (isFlipping) return;
@@ -389,7 +382,6 @@
       setTimeout(() => { isFlipping = false; }, 600);
     });
 
-    // 画面復帰時の自動再開（バックグラウンド死防止）
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         if (videoElement.paused) videoElement.play().catch(() => {});
@@ -400,7 +392,6 @@
       if (videoElement.paused) videoElement.play().catch(() => {});
     });
 
-    // MediaRecorder 生成
     function createSafeMediaRecorder(stream) {
       const types = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'];
       let selectedType = '';
@@ -410,7 +401,6 @@
       return new MediaRecorder(stream, selectedType ? { mimeType: selectedType } : undefined);
     }
 
-    // 録画制御
     const recShutterBtn = document.getElementById('recShutterBtn');
     const shutterInner = document.getElementById('shutterInner');
     const recIndicator = document.getElementById('recIndicator');
@@ -429,7 +419,6 @@
       };
 
       mediaRecorder.onstop = () => {
-        // メインスレッドのフリーズを防ぐため、次フレームで安全に非同期保存を実行
         setTimeout(async () => {
           const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
           await handleSaveVideo(blob, `kinema_step${currentStep}_${Date.now()}.mp4`);
@@ -438,7 +427,6 @@
             document.getElementById('stepTransitionModal').classList.remove('hidden');
             document.getElementById('stepTransitionModal').classList.add('flex');
           } else {
-            // PDF生成も安全にキューへ流す
             setTimeout(async () => {
               await generateReportPdf();
               resetToInitialState();
@@ -454,7 +442,6 @@
       shutterInner.className = 'w-5 h-5 rounded-md bg-rose-600';
       audio.beep(659, 0.3);
 
-      // 7秒で自動停止
       autoStopTimer = setTimeout(() => {
         if (isRecording) stopStepRecording();
       }, 7000);
@@ -472,7 +459,6 @@
       }
     }
 
-    // iOS Web Share / フォールバック保存
     async function handleSaveVideo(blob, filename) {
       try {
         const file = new File([blob], filename, { type: blob.type });
@@ -483,7 +469,6 @@
       } catch (err) {
         console.warn('Share canceled/failed, using fallback anchor:', err);
       }
-      // アンカークリックによるフォールバック
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -494,7 +479,6 @@
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 
-    // カウントダウンシャッター
     recShutterBtn.addEventListener('click', () => {
       if (isCountingDown) return;
       if (!isRecording) {
@@ -535,7 +519,6 @@
       audio.beep(880, 0.2);
     });
 
-    // 軽量A4 PDF生成
     async function generateReportPdf() {
       try {
         document.getElementById('repDate').innerText = new Date().toLocaleDateString('ja-JP');
@@ -553,10 +536,10 @@
 
         const kneeInLabel = document.getElementById('repKneeIn');
         if (kneeInDetected) {
-          kneeInLabel.innerText = '⚠️ 動的膝外反 (ニーイン) を検知[cite: 7]';
+          kneeInLabel.innerText = '⚠️ 動的膝外反 (ニーイン) を検知';
           kneeInLabel.style.color = '#dc2626';
         } else {
-          kneeInLabel.innerText = '検知なし (正常アライメント)[cite: 7]';
+          kneeInLabel.innerText = '検知なし (正常アライメント)';
           kneeInLabel.style.color = '#16a34a';
         }
 
