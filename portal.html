@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>KinemaOS - Sports Science Portal</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="KinemaOS">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b0f19; color: #f8fafc; touch-action: manipulation; }
+    .safe-top { padding-top: max(16px, env(safe-area-inset-top)); }
+    .safe-bottom { padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] flex flex-col justify-between font-sans safe-top safe-bottom px-4 max-w-lg mx-auto">
+
+  <!-- TOP HEADER -->
+  <header class="py-4 border-b border-slate-800 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-cyan-500 flex items-center justify-center font-black text-slate-950 text-base shadow-lg shadow-cyan-500/20">
+        KM
+      </div>
+      <div>
+        <h1 class="text-base font-extrabold text-white leading-tight">KinemaOS</h1>
+        <p class="text-[11px] text-slate-400 font-mono">百武整形外科 スポーツ科学DXポータル</p>
+      </div>
+    </div>
+    <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-slate-800 text-cyan-400 border border-slate-700">
+      v1.0 Pro
+    </span>
+  </header>
+
+  <!-- MAIN SUITE GRID -->
+  <main class="flex-1 py-6 flex flex-col gap-4">
+    <div class="flex items-center justify-between px-1">
+      <span class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Evaluation Battery</span>
+      <span class="text-[11px] text-slate-500">科学的評価ツール群</span>
+    </div>
+
+    <!-- 1. 動作解析 & CMJジャンプ -->
+    <a href="index.html" class="glass-card rounded-2xl p-4.5 flex items-center justify-between hover:border-cyan-500/80 active:scale-[0.98] transition-all group shadow-xl">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl group-hover:bg-cyan-500/20 transition-colors">
+          🏃‍♂️
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">動的動作解析 & CMJ</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">Real-time</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">前額面/矢状面の関節角度・跳躍高・ニーイン検知</p>
+        </div>
+      </div>
+      <svg class="w-5 h-5 text-slate-600 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </a>
+
+    <!-- 2. AI静止姿勢アライメントカルテ -->
+    <a href="posture.html" class="glass-card rounded-2xl p-4.5 flex items-center justify-between hover:border-emerald-500/80 active:scale-[0.98] transition-all group shadow-xl">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl group-hover:bg-emerald-500/20 transition-colors">
+          🧍
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">AI静止立位・姿勢カルテ</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">PDF出力</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">方眼グリッド・前後左右の傾斜角・A4レポート生成</p>
+        </div>
+      </div>
+      <svg class="w-5 h-5 text-slate-600 group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </a>
+
+    <!-- 3. 心拍・運動強度マネージャー -->
+    <a href="heartrate.html" class="glass-card rounded-2xl p-4.5 flex items-center justify-between hover:border-rose-500/80 active:scale-[0.98] transition-all group shadow-xl">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-xl group-hover:bg-rose-500/20 transition-colors">
+          ❤️
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white group-hover:text-rose-400 transition-colors">目標心拍・運動強度</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-800 font-mono">Karvonen</span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">個人HRR補正・Watch直打ち/20秒手動ハイブリッド</p>
+        </div>
+      </div>
+      <svg class="w-5 h-5 text-slate-600 group-hover:text-rose-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </a>
+
+    <!-- 4. ロードマネジメント（準備中） -->
+    <div class="glass-card rounded-2xl p-4.5 flex items-center justify-between opacity-60 border-dashed">
+      <div class="flex items-center gap-3.5">
+        <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xl text-slate-500">
+          📊
+        </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-slate-400">ロードマネジメント (ACWR)</span>
+            <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">Coming Soon</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-0.5">LINEコンディション・急激負荷比率モニタリング</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-3 text-center border-t border-slate-800/80">
+    <p class="text-[10px] text-slate-500 font-mono">
+      Principle: Science & Spirit • Visualization • Borderless
+    </p>
+  </footer>
+
+</body>
+</html>
