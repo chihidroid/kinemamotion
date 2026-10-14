@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-title" content="Posture AI">
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 高速ロード版 Pose -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -22,15 +23,20 @@
 </head>
 <body class="h-[100dvh] w-screen flex flex-col justify-between overflow-hidden font-sans">
 
-  <!-- TOP HEADER -->
+  <!-- TOP HEADER (ポータル戻るリンク付き) -->
   <header class="w-full z-30 onform-glass border-b border-slate-800/80 px-4 py-2 safe-top flex items-center justify-between shrink-0">
-    <div class="flex items-center gap-2">
-      <div class="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-xs text-black">PA</div>
-      <div class="flex flex-col">
-        <span class="text-xs font-bold leading-none text-white">Posture AI カルテ</span>
-        <span id="stepTitle" class="text-[9px] text-emerald-400 font-mono font-bold">STEP 1: 正面立位の撮影</span>
+    <a href="portal.html" class="flex items-center gap-2 group active:opacity-70 transition-opacity">
+      <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center font-black text-xs group-hover:border-emerald-400 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
       </div>
-    </div>
+      <div class="flex flex-col">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold leading-none text-white">Posture AI</span>
+          <span id="aiReadyBadge" class="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 font-mono border border-amber-800">AI準備中</span>
+        </div>
+        <span id="stepTitle" class="text-[9px] text-emerald-400 font-mono font-bold mt-0.5">STEP 1: 正面立位の撮影</span>
+      </div>
+    </a>
 
     <!-- グリッド表示トグル & カメラ反転 -->
     <div class="flex items-center gap-2">
@@ -47,12 +53,6 @@
   <main class="flex-1 relative w-full min-h-0 flex items-center justify-center bg-black overflow-hidden">
     <video id="inputVideo" class="hidden" autoplay playsinline muted></video>
     <canvas id="outputCanvas" class="w-full h-full object-contain max-h-full"></canvas>
-
-    <!-- ロード画面 -->
-    <div id="loadingStatus" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center text-emerald-400 text-xs gap-3 z-40">
-      <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      <span class="font-mono">姿勢推定AIエンジン起動中...</span>
-    </div>
 
     <!-- 撮影ガイダンス枠 -->
     <div class="absolute inset-y-6 inset-x-8 sm:inset-y-10 sm:inset-x-36 border-2 border-dashed border-emerald-500/40 rounded-3xl pointer-events-none flex flex-col items-center justify-between p-3 z-20">
@@ -80,12 +80,9 @@
     <span id="stepCounter" class="text-xs font-mono font-bold text-slate-300">1 / 2</span>
   </footer>
 
-  <!-- ========================================== -->
-  <!-- 撮影後プレビュー & カウンセリングモーダル    -->
-  <!-- ========================================== -->
+  <!-- 撮影後プレビュー & カウンセリングモーダル -->
   <div id="previewModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex-col justify-between overflow-y-auto p-4 safe-top safe-bottom">
     <div class="w-full max-w-xl mx-auto bg-slate-900 border border-slate-700 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl">
-      <!-- プレビューヘッダー -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <div>
           <span class="text-[10px] font-bold text-emerald-400 font-mono">POSTURE RESULT</span>
@@ -96,7 +93,6 @@
         </button>
       </div>
 
-      <!-- 写真 2面プレビュー（画像本来のアスペクト比を100%保持） -->
       <div class="grid grid-cols-2 gap-3">
         <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col items-center">
           <span class="text-[10px] font-bold text-emerald-400 mb-1.5">正面立位</span>
@@ -108,7 +104,6 @@
         </div>
       </div>
 
-      <!-- 診断数値テーブル -->
       <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden text-xs">
         <div class="grid grid-cols-3 p-2.5 bg-slate-900/60 font-bold text-slate-400 border-b border-slate-800">
           <span>評価項目</span>
@@ -137,13 +132,11 @@
         </div>
       </div>
 
-      <!-- 総合評価 -->
       <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between">
         <span class="text-xs text-slate-300">総合姿勢タイプ</span>
         <span id="prevTypeVal" class="text-xs font-bold text-emerald-400">理想的アライメント</span>
       </div>
 
-      <!-- アクションボタン -->
       <div class="flex items-center gap-3 pt-2">
         <button id="retakeBtn" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all">
           撮り直す
@@ -183,7 +176,7 @@
     const videoElement = document.getElementById('inputVideo');
     const canvasElement = document.getElementById('outputCanvas');
     const canvasCtx = canvasElement.getContext('2d');
-    const loadingStatus = document.getElementById('loadingStatus');
+    const aiReadyBadge = document.getElementById('aiReadyBadge');
 
     let currentStep = 1;
     let facingUser = false;
@@ -191,6 +184,7 @@
     let activeStream = null;
     let animFrameId = null;
     let isPoseRunning = false;
+    let isAiReady = false;
 
     let frontSnapshot = null;
     let sagittalSnapshot = null;
@@ -202,13 +196,23 @@
       postureType: '理想的アライメント'
     };
 
+    // ★ modelComplexity: 0 (最速・軽量モデルに最適化)
     const pose = new Pose({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
     });
-    pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
+    pose.setOptions({ 
+      modelComplexity: 0, // 0 = Lite (超高速ロード), 1 = Full
+      smoothLandmarks: true, 
+      minDetectionConfidence: 0.5, 
+      minTrackingConfidence: 0.5 
+    });
 
     pose.onResults((results) => {
-      loadingStatus.classList.add('hidden');
+      if (!isAiReady) {
+        isAiReady = true;
+        aiReadyBadge.innerText = 'AI認識中';
+        aiReadyBadge.className = 'text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 font-mono border border-emerald-800';
+      }
       isPoseRunning = false;
 
       if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
@@ -311,15 +315,18 @@
       canvasCtx.restore();
     }
 
+    // カメラファースト起動（待機時間ゼロでカメラを即時投影）
     async function startCamera() {
       if (animFrameId) cancelAnimationFrame(animFrameId);
       if (activeStream) activeStream.getTracks().forEach(t => t.stop());
 
-      loadingStatus.classList.remove('hidden');
-
       try {
         activeStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingUser ? 'user' : 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { 
+            facingMode: facingUser ? 'user' : 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
           audio: false
         });
         videoElement.srcObject = activeStream;
@@ -327,6 +334,16 @@
 
         function loop() {
           if (videoElement.readyState >= 2 && !videoElement.paused) {
+            // AI未ロード時でもカメラ映像とグリッドは常時プレビュー
+            if (!isAiReady) {
+              if (videoElement.videoWidth && canvasElement.width !== videoElement.videoWidth) {
+                canvasElement.width = videoElement.videoWidth;
+                canvasElement.height = videoElement.videoHeight;
+              }
+              canvasCtx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+              if (showGrid) drawGridAndPlumbLine(canvasElement.width, canvasElement.height);
+            }
+
             if (!isPoseRunning) {
               isPoseRunning = true;
               pose.send({ image: videoElement }).catch(() => { isPoseRunning = false; });
@@ -337,7 +354,7 @@
         loop();
       } catch (err) {
         console.error('Camera Launch Error:', err);
-        loadingStatus.classList.add('hidden');
+        alert('カメラの起動に失敗しました。');
       }
     }
     startCamera();
@@ -353,7 +370,6 @@
       document.getElementById('toggleGridBtn').innerText = `方眼グリッド: ${showGrid ? 'ON' : 'OFF'}`;
     });
 
-    // シャッター処理
     document.getElementById('shutterBtn').addEventListener('click', () => {
       audio.shutterSound();
       const photo = canvasElement.toDataURL('image/jpeg', 0.95);
@@ -366,11 +382,10 @@
         document.getElementById('guideInstruction').innerText = '被検者は真横（側面）を向いて立ってください';
       } else {
         sagittalSnapshot = photo;
-        showPreviewModal(); // 即保存ではなくプレビューを表示
+        showPreviewModal();
       }
     });
 
-    // プレビューモーダルの表示
     function showPreviewModal() {
       document.getElementById('prevFrontImg').src = frontSnapshot;
       document.getElementById('prevSagittalImg').src = sagittalSnapshot;
@@ -409,12 +424,10 @@
       modal.classList.add('flex');
     }
 
-    // ★ ピュアjsPDF直接描画エンジン（アスペクト比を100%保持・歪みゼロ）
     async function exportPurePdf() {
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4'); // A4: 210mm x 297mm
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-      // ヘッダー装飾
       pdf.setFillColor(5, 150, 105);
       pdf.rect(15, 15, 180, 2, 'F');
 
@@ -428,10 +441,9 @@
 
       pdf.setFontSize(8);
       pdf.setTextColor(100, 116, 139);
-      pdf.text('Hyakutake Orthopedic Hospital Sports Division', 15, 35);[cite: 2, 7]
+      pdf.text('Hyakutake Orthopedic Hospital Sports Division', 15, 35);
       pdf.text(`Date: ${new Date().toLocaleDateString('ja-JP')}  |  ID: PA-${Math.floor(1000 + Math.random() * 9000)}`, 130, 35);
 
-      // 画像のピクセルサイズを取得して縦横比を完全固定で配置
       const getImageDimensions = (src) => new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve({ w: img.width, h: img.height });
@@ -441,39 +453,33 @@
       const frontDim = await getImageDimensions(frontSnapshot);
       const sagDim = await getImageDimensions(sagittalSnapshot);
 
-      // 写真エリアの最大枠（幅85mm、高さ110mm）
       const maxBoxW = 85;
       const maxBoxH = 110;
 
-      // 前額面写真の縮尺計算
       const frontRatio = Math.min(maxBoxW / frontDim.w, maxBoxH / frontDim.h);
       const fW = frontDim.w * frontRatio;
       const fH = frontDim.h * frontRatio;
       const fX = 15 + (maxBoxW - fW) / 2;
       const fY = 42 + (maxBoxH - fH) / 2;
 
-      // 矢状面写真の縮尺計算
       const sagRatio = Math.min(maxBoxW / sagDim.w, maxBoxH / sagDim.h);
       const sW = sagDim.w * sagRatio;
       const sH = sagDim.h * sagRatio;
       const sX = 110 + (maxBoxW - sW) / 2;
       const sY = 42 + (maxBoxH - sH) / 2;
 
-      // 背景枠
       pdf.setFillColor(248, 250, 252);
       pdf.roundedRect(15, 42, maxBoxW, maxBoxH, 2, 2, 'F');
       pdf.roundedRect(110, 42, maxBoxW, maxBoxH, 2, 2, 'F');
 
-      // 画像を本来の比率のまま埋め込み（歪みゼロ）[cite: 7]
       pdf.addImage(frontSnapshot, 'JPEG', fX, fY, fW, fH);
       pdf.addImage(sagittalSnapshot, 'JPEG', sX, sY, sW, sH);
 
       pdf.setFontSize(9);
       pdf.setTextColor(5, 150, 105);
-      pdf.text('Frontal View', 15, 156);[cite: 7]
-      pdf.text('Sagittal View', 110, 156);[cite: 7]
+      pdf.text('Frontal View', 15, 156);
+      pdf.text('Sagittal View', 110, 156);
 
-      // 測定テーブル
       pdf.setDrawColor(203, 213, 225);
       pdf.line(15, 162, 195, 162);
 
@@ -500,30 +506,26 @@
         pdf.line(15, y + 2, 195, y + 2);
       });
 
-      // 総合タイプ
       pdf.setFillColor(241, 245, 249);
       pdf.roundedRect(15, 215, 180, 12, 2, 2, 'F');
       pdf.setFontSize(9);
       pdf.setTextColor(15, 23, 42);
       pdf.text('Classification:  ' + currentMetrics.postureType, 20, 223);
 
-      // 所見枠[cite: 8]
       pdf.setDrawColor(203, 213, 225);
       pdf.roundedRect(15, 233, 180, 40, 2, 2, 'D');
       pdf.setFontSize(8);
       pdf.setTextColor(100, 116, 139);
       pdf.text('Clinical Findings & Exercise Prescription:', 18, 239);
-      pdf.text('PT Signature: _______________________', 120, 268);[cite: 8]
+      pdf.text('PT Signature: _______________________', 120, 268);
 
       pdf.save(`posture_report_${Date.now()}.pdf`);
     }
 
-    // PDF保存ボタン
     document.getElementById('downloadPdfBtn').addEventListener('click', async () => {
       await exportPurePdf();
     });
 
-    // 撮り直し
     document.getElementById('retakeBtn').addEventListener('click', () => {
       document.getElementById('previewModal').classList.add('hidden');
       document.getElementById('previewModal').classList.remove('flex');
