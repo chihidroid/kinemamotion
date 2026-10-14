@@ -11,6 +11,11 @@
     body { background-color: #0b0f19; color: #f8fafc; touch-action: manipulation; }
     .safe-top { padding-top: max(12px, env(safe-area-inset-top)); }
     .safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    input[type="number"]::-webkit-inner-spin-button, 
+    input[type="number"]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
   </style>
 </head>
 <body class="min-h-[100dvh] flex flex-col justify-between font-sans safe-top safe-bottom px-4">
@@ -27,60 +32,84 @@
     <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">百武スポーツ事業部</span>
   </header>
 
-  <!-- MAIN INPUTS & RESULT -->
-  <main class="flex-1 flex flex-col gap-4 py-4 max-w-md mx-auto w-full">
+  <!-- MAIN VIEW -->
+  <main class="flex-1 flex flex-col gap-3 py-3 max-w-md mx-auto w-full">
 
-    <!-- 入力カード -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3 shadow-xl">
-      <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
-        <span class="text-xs font-bold text-slate-300">測定パラメータ入力</span>
-        <button id="clearBtn" class="text-[10px] text-slate-400 hover:text-rose-400 transition-colors">クリア</button>
+    <!-- 年齢 & 推定最大心拍数 -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-xl flex items-center justify-between">
+      <div class="w-1/2 pr-3 border-r border-slate-800">
+        <label class="text-[11px] text-slate-400 block mb-1">年齢 (Age)</label>
+        <div class="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-cyan-400">
+          <input type="number" id="inputAge" value="18" class="w-full bg-transparent text-white font-mono text-base font-bold outline-none" inputmode="numeric">
+          <span class="text-slate-500 text-xs">歳</span>
+        </div>
       </div>
-
-      <div class="grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <label class="text-[11px] text-slate-400 mb-1 block">年齢 (Age)</label>
-          <div class="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-2">
-            <input type="number" id="inputAge" value="18" class="w-full bg-transparent text-white font-mono text-base font-bold outline-none" inputmode="numeric">
-            <span class="text-slate-500 text-[10px]">歳</span>
-          </div>
-        </div>
-
-        <div>
-          <label class="text-[11px] text-slate-400 mb-1 block">推定最大心拍数 (220-年齢)</label>
-          <div class="flex items-center bg-slate-950/50 border border-slate-800 rounded-xl px-3 py-2">
-            <span id="maxHrLabel" class="w-full text-slate-400 font-mono text-base font-bold">202</span>
-            <span class="text-slate-500 text-[10px]">bpm</span>
-          </div>
-        </div>
-
-        <div>
-          <label class="text-[11px] text-slate-400 mb-1 block">安静時 (20秒カウント)</label>
-          <div class="flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-2">
-            <input type="number" id="inputRest20" value="20" class="w-full bg-transparent text-white font-mono text-base font-bold outline-none" inputmode="numeric">
-            <span class="text-slate-500 text-[10px]">回</span>
-          </div>
-          <span class="text-[9px] text-slate-400 mt-0.5 block">安静時心拍: <strong id="restHrLabel" class="text-cyan-400 font-mono">60</strong> bpm</span>
-        </div>
-
-        <div>
-          <label class="text-[11px] text-slate-400 mb-1 block">運動直後 (20秒カウント)</label>
-          <div class="flex items-center bg-slate-950 border border-rose-500/50 rounded-xl px-3 py-2 focus-within:border-rose-400">
-            <input type="number" id="inputWork20" value="50" class="w-full bg-transparent text-rose-300 font-mono text-base font-bold outline-none" inputmode="numeric">
-            <span class="text-slate-500 text-[10px]">回</span>
-          </div>
-          <span class="text-[9px] text-slate-400 mt-0.5 block">運動後心拍: <strong id="workHrLabel" class="text-rose-400 font-mono">150</strong> bpm</span>
+      <div class="w-1/2 pl-3 flex flex-col justify-center">
+        <span class="text-[10px] text-slate-400">推定最大心拍数 (220-年齢)</span>
+        <div class="flex items-baseline gap-1 mt-0.5">
+          <span id="maxHrLabel" class="text-xl font-black font-mono text-slate-200">202</span>
+          <span class="text-[10px] text-slate-500">bpm</span>
         </div>
       </div>
     </div>
 
-    <!-- 今回のトレーニング強度カード -->
+    <!-- 心拍入力カード（直打ち vs 20秒切替） -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex flex-col gap-3 shadow-xl">
+      
+      <!-- 安静時心拍数 -->
+      <div class="flex flex-col gap-1.5 pb-3 border-b border-slate-800/80">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300">① 安静時心拍数 (Resting HR)</span>
+          <!-- 切替タブ -->
+          <div class="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+            <button id="restModeWatchBtn" class="px-2 py-0.5 rounded font-bold bg-cyan-600 text-white transition-all">⌚ Watch (bpm)</button>
+            <button id="restModeManualBtn" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all">✋ 手動 (20秒)</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="flex-1 flex items-center bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-cyan-400">
+            <input type="number" id="inputRestVal" value="60" class="w-full bg-transparent text-cyan-400 font-mono text-base font-bold outline-none" inputmode="numeric">
+            <span id="restUnitLabel" class="text-slate-500 text-xs font-mono">bpm</span>
+          </div>
+          <div class="w-24 text-right">
+            <span class="text-[10px] text-slate-400 block leading-tight">換算値</span>
+            <span class="font-mono text-xs font-bold text-white"><span id="restCalcLabel">60</span> bpm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 運動後心拍数 -->
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300">② 運動後心拍数 (Exercise HR)</span>
+          <!-- 切替タブ -->
+          <div class="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+            <button id="workModeWatchBtn" class="px-2 py-0.5 rounded font-bold bg-rose-600 text-white transition-all">⌚ Watch (bpm)</button>
+            <button id="workModeManualBtn" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all">✋ 手動 (20秒)</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="flex-1 flex items-center bg-slate-950 border border-rose-500/50 rounded-xl px-3 py-1.5 focus-within:border-rose-400">
+            <input type="number" id="inputWorkVal" value="150" class="w-full bg-transparent text-rose-300 font-mono text-base font-bold outline-none" inputmode="numeric">
+            <span id="workUnitLabel" class="text-slate-500 text-xs font-mono">bpm</span>
+          </div>
+          <div class="w-24 text-right">
+            <span class="text-[10px] text-slate-400 block leading-tight">換算値</span>
+            <span class="font-mono text-xs font-bold text-white"><span id="workCalcLabel">150</span> bpm</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 今回の運動強度 (HRR カルボーネン) -->
     <div class="bg-gradient-to-br from-slate-900 to-slate-950 border border-rose-500/40 rounded-2xl p-4 flex items-center justify-between shadow-2xl relative overflow-hidden">
       <div class="flex flex-col">
         <span class="text-[10px] font-bold text-rose-400 tracking-wider uppercase font-mono">TRAINING INTENSITY (HRR)</span>
         <span class="text-xs text-slate-300 mt-0.5">今回の運動強度（カルボーネン）</span>
-        <span id="intensityZoneBadge" class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-700 w-fit">
-          有酸素ベース構築ゾーン (Zone 2)
+        <span id="intensityZoneBadge" class="inline-block mt-2 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-700 w-fit">
+          有酸素ベース構築 (Zone 2)
         </span>
       </div>
       <div class="flex items-baseline gap-1">
@@ -89,8 +118,8 @@
       </div>
     </div>
 
-    <!-- 目標心拍数テーブル (カルボーネン早見表) -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-2.5 shadow-xl">
+    <!-- 目標心拍数テーブル -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex flex-col gap-2 shadow-xl">
       <div class="flex items-center justify-between">
         <span class="text-xs font-bold text-slate-300">目標運動強度テーブル (Target HR)</span>
         <span class="text-[9px] text-slate-500 font-mono">HR = (HRmax - HRrest) × % + HRrest</span>
@@ -98,7 +127,7 @@
 
       <div class="grid grid-cols-2 gap-2 text-xs">
         <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-          <span class="font-bold text-cyan-400">50% (回復・ウォームアップ)</span>
+          <span class="font-bold text-cyan-400">50% (回復・ウォーム)</span>
           <span id="target50" class="font-mono font-bold text-white text-sm">131 <span class="text-[10px] text-slate-500 font-normal">bpm</span></span>
         </div>
         <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
@@ -110,7 +139,7 @@
           <span id="target70" class="font-mono font-bold text-white text-sm">159 <span class="text-[10px] text-slate-500 font-normal">bpm</span></span>
         </div>
         <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
-          <span class="font-bold text-orange-400">80% (無酸素性作業閾値)</span>
+          <span class="font-bold text-orange-400">80% (無酸素作業閾値)</span>
           <span id="target80" class="font-mono font-bold text-white text-sm">174 <span class="text-[10px] text-slate-500 font-normal">bpm</span></span>
         </div>
         <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
@@ -131,24 +160,74 @@
 
   <script>
     const inputAge = document.getElementById('inputAge');
-    const inputRest20 = document.getElementById('inputRest20');
-    const inputWork20 = document.getElementById('inputWork20');
+    const inputRestVal = document.getElementById('inputRestVal');
+    const inputWorkVal = document.getElementById('inputWorkVal');
 
+    // モード管理: 'watch' (bpm直接) or 'manual' (20秒カウント)
+    let restMode = 'watch';
+    let workMode = 'watch';
+
+    // 安静時モード切替
+    const restModeWatchBtn = document.getElementById('restModeWatchBtn');
+    const restModeManualBtn = document.getElementById('restModeManualBtn');
+    const restUnitLabel = document.getElementById('restUnitLabel');
+
+    restModeWatchBtn.addEventListener('click', () => {
+      restMode = 'watch';
+      restModeWatchBtn.className = 'px-2 py-0.5 rounded font-bold bg-cyan-600 text-white transition-all';
+      restModeManualBtn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all';
+      restUnitLabel.innerText = 'bpm';
+      inputRestVal.value = '60';
+      calculate();
+    });
+
+    restModeManualBtn.addEventListener('click', () => {
+      restMode = 'manual';
+      restModeManualBtn.className = 'px-2 py-0.5 rounded font-bold bg-cyan-600 text-white transition-all';
+      restModeWatchBtn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all';
+      restUnitLabel.innerText = '回 / 20s';
+      inputRestVal.value = '20';
+      calculate();
+    });
+
+    // 運動後モード切替
+    const workModeWatchBtn = document.getElementById('workModeWatchBtn');
+    const workModeManualBtn = document.getElementById('workModeManualBtn');
+    const workUnitLabel = document.getElementById('workUnitLabel');
+
+    workModeWatchBtn.addEventListener('click', () => {
+      workMode = 'watch';
+      workModeWatchBtn.className = 'px-2 py-0.5 rounded font-bold bg-rose-600 text-white transition-all';
+      workModeManualBtn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all';
+      workUnitLabel.innerText = 'bpm';
+      inputWorkVal.value = '150';
+      calculate();
+    });
+
+    workModeManualBtn.addEventListener('click', () => {
+      workMode = 'manual';
+      workModeManualBtn.className = 'px-2 py-0.5 rounded font-bold bg-rose-600 text-white transition-all';
+      workModeWatchBtn.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all';
+      workUnitLabel.innerText = '回 / 20s';
+      inputWorkVal.value = '50';
+      calculate();
+    });
+
+    // 計算メインロジック
     function calculate() {
       const age = parseFloat(inputAge.value) || 0;
-      const rest20 = parseFloat(inputRest20.value) || 0;
-      const work20 = parseFloat(inputWork20.value) || 0;
+      const rawRest = parseFloat(inputRestVal.value) || 0;
+      const rawWork = parseFloat(inputWorkVal.value) || 0;
 
       const maxHr = Math.max(0, 220 - age);
-      const restHr = rest20 * 3;
-      const workHr = work20 * 3;
+      const restHr = (restMode === 'manual') ? rawRest * 3 : rawRest;
+      const workHr = (workMode === 'manual') ? rawWork * 3 : rawWork;
 
       document.getElementById('maxHrLabel').innerText = maxHr;
-      document.getElementById('restHrLabel').innerText = restHr;
-      document.getElementById('workHrLabel').innerText = workHr;
+      document.getElementById('restCalcLabel').innerText = Math.round(restHr);
+      document.getElementById('workCalcLabel').innerText = Math.round(workHr);
 
-      // カルボーネン目標心拍数算出
-      const hrr = Math.max(0, maxHr - restHr); // Heart Rate Reserve
+      const hrr = Math.max(0, maxHr - restHr);
       const calcTarget = (pct) => Math.round(hrr * pct + restHr);
 
       document.getElementById('target50').innerHTML = `${calcTarget(0.50)} <span class="text-[10px] text-slate-500 font-normal">bpm</span>`;
@@ -158,37 +237,30 @@
       document.getElementById('target90').innerHTML = `${calcTarget(0.90)} <span class="text-[10px] text-slate-500 font-normal">bpm</span>`;
       document.getElementById('target100').innerHTML = `${calcTarget(1.00)} <span class="text-[10px] text-slate-500 font-normal">bpm</span>`;
 
-      // 今回の運動強度 (%)
       let currentIntensity = 0;
       if (hrr > 0) {
         currentIntensity = Math.round(((workHr - restHr) / hrr) * 100);
       }
       document.getElementById('intensityVal').innerText = currentIntensity;
 
-      // ゾーン判定
       const badge = document.getElementById('intensityZoneBadge');
       if (currentIntensity < 50) {
         badge.innerText = '軽運動・ウォームアップ (Zone 1)';
-        badge.className = 'inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 w-fit';
+        badge.className = 'inline-block mt-2 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 w-fit';
       } else if (currentIntensity < 70) {
         badge.innerText = '有酸素ベース構築・脂肪燃焼 (Zone 2)';
-        badge.className = 'inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 w-fit';
+        badge.className = 'inline-block mt-2 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 w-fit';
       } else if (currentIntensity < 85) {
         badge.innerText = '持久力・無酸素作業閾値向上 (Zone 3-4)';
-        badge.className = 'inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800 w-fit';
+        badge.className = 'inline-block mt-2 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-950 text-amber-300 border border-amber-800 w-fit';
       } else {
         badge.innerText = '高強度インターバル・心肺限界 (Zone 5)';
-        badge.className = 'inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 w-fit';
+        badge.className = 'inline-block mt-2 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800 w-fit';
       }
     }
 
-    [inputAge, inputRest20, inputWork20].forEach(el => {
+    [inputAge, inputRestVal, inputWorkVal].forEach(el => {
       el.addEventListener('input', calculate);
-    });
-
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      inputWork20.value = '';
-      calculate();
     });
 
     calculate();
