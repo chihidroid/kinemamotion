@@ -2,8 +2,22 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>きらきら★九九マスター - たのしくかけ算れんしゅう！</title>
+  <!-- 画面倍率の完全固定（ズーム禁止メタタグ） -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <title>きらきら★九九マスター - ぴよちゃん九九</title>
+
+  <!-- iOS / iPadOS Safari フルスクリーンWebアプリ（PWA）設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="九九マスター">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#FF70A6">
+
+  <!-- ホーム画面追加時の可愛いひよこアプリアイコン（外部画像不要のSVGインライン） -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23FFE5EC'/%3E%3Cstop offset='100%25' stop-color='%23FFB3C6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='url(%23bg)'/%3E%3Ccircle cx='90' cy='90' r='76' fill='none' stroke='%23FF70A6' stroke-width='4' stroke-dasharray='8 6'/%3E%3Ctext x='90' y='116' font-size='82' text-anchor='middle' font-family='sans-serif'%3E%F0%9F%90%A3%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A3%3C/text%3E%3C/svg%3E">
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: M PLUS Rounded 1c & Fredoka -->
@@ -18,50 +32,21 @@
       theme: {
         extend: {
           fontFamily: {
-            rounded: ['"M PLUS Rounded 1c"', 'sans-serif'],
-            fredoka: ['"Fredoka"', 'sans-serif'],
+            rounded: ["'M PLUS Rounded 1c'", "sans-serif"],
+            fredoka: ["'Fredoka'", "sans-serif"],
           },
           colors: {
             brand: {
               pink: '#FF70A6',
-              softPink: '#FFE5EC',
-              apricot: '#FF9770',
-              yellow: '#FFD670',
-              softYellow: '#FFF6D6',
-              mint: '#70D6BC',
-              softMint: '#E3FAF3',
-              purple: '#A06CD5',
-              softPurple: '#F5ECFC',
-              bgLight: '#FFF9FB'
+              yellow: '#FFD166',
+              green: '#06D6A0',
+              blue: '#4CC9F0',
             }
           },
-          keyframes: {
-            bounceGentle: {
-              '0%, 100%': { transform: 'translateY(0)' },
-              '50%': { transform: 'translateY(-8px)' },
-            },
-            pop: {
-              '0%': { transform: 'scale(0.8)', opacity: '0' },
-              '70%': { transform: 'scale(1.1)' },
-              '100%': { transform: 'scale(1)', opacity: '1' },
-            },
-            feedbackPop: {
-              '0%': { transform: 'scale(0.3) rotate(-10deg)', opacity: '0' },
-              '60%': { transform: 'scale(1.15) rotate(4deg)' },
-              '80%': { transform: 'scale(0.95) rotate(-2deg)' },
-              '100%': { transform: 'scale(1) rotate(0deg)', opacity: '1' },
-            },
-            shake: {
-              '0%, 100%': { transform: 'translateX(0)' },
-              '20%, 60%': { transform: 'translateX(-6px)' },
-              '40%, 80%': { transform: 'translateX(6px)' },
-            }
-          },
-          animation: {
-            bounceGentle: 'bounceGentle 2.2s infinite ease-in-out',
-            pop: 'pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-            feedbackPop: 'feedbackPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
-            shake: 'shake 0.4s ease-in-out',
+          boxShadow: {
+            'pop': '0 6px 0px 0px rgba(0, 0, 0, 0.1)',
+            'pop-pink': '0 6px 0px 0px #E0528B',
+            'pop-green': '0 6px 0px 0px #04A67C',
           }
         }
       }
@@ -69,1037 +54,740 @@
   </script>
 
   <style>
-    body {
-      font-family: 'M PLUS Rounded 1c', sans-serif;
+    /* 画面スケーリング・テキスト選択・バウンススクロールの完全防止 */
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+      -webkit-overscroll-behavior: none;
+      touch-action: pan-y;
+      -webkit-text-size-adjust: 100%;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+    }
+
+    /* ボタンタップ時の青いハイライトを無効化 & レスポンス最速化 */
+    button, input, select, a {
+      touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      background-color: #FFF5F8;
-      background-image: 
-        radial-gradient(#FFD0E0 1.5px, transparent 1.5px),
-        radial-gradient(#FFE1B3 1.5px, #FFF5F8 1.5px);
-      background-size: 40px 40px;
-      background-position: 0 0, 20px 20px;
     }
 
-    /* 3Dぷっくりボタン効果 */
-    .btn-3d {
-      transition: all 0.1s ease;
-      box-shadow: 0 6px 0 rgba(0,0,0,0.14);
+    .pop-btn {
+      transition: transform 0.05s ease, box-shadow 0.05s ease;
     }
-    .btn-3d:active {
+    .pop-btn:active {
       transform: translateY(4px);
-      box-shadow: 0 2px 0 rgba(0,0,0,0.14);
+      box-shadow: 0 2px 0px 0px rgba(0,0,0,0.12) !important;
     }
 
-    .keypad-btn {
-      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s;
-      box-shadow: 0 5px 0 #E2C0CC;
+    @keyframes floaty {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(2deg); }
     }
-    .keypad-btn:active {
-      transform: translateY(4px);
-      box-shadow: 0 1px 0 #E2C0CC;
+    .animate-float {
+      animation: floaty 3s ease-in-out infinite;
     }
 
-    /* スクロールバーの装飾 */
-    ::-webkit-scrollbar {
-      width: 8px;
+    @keyframes popIn {
+      0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+      75% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
     }
-    ::-webkit-scrollbar-track {
-      background: #FFE5EC;
-      border-radius: 9999px;
+    .animate-pop-in {
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
-    ::-webkit-scrollbar-thumb {
-      background: #FFB3C6;
-      border-radius: 9999px;
+
+    /* iPhoneのノッチ / ホームバー用セーフエリア */
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 12px);
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 12px);
     }
   </style>
 </head>
-<body class="min-h-screen text-slate-700 flex flex-col justify-between p-3 sm:p-5">
+<body class="bg-[#FFF8F0] min-h-screen text-[#4A4453] flex flex-col justify-between selection:bg-pink-200 safe-top safe-bottom">
 
   <!-- ヘッダーバー -->
-  <header class="w-full max-w-4xl mx-auto flex items-center justify-between py-2 px-4 bg-white/80 backdrop-blur-md rounded-full shadow-sm border border-pink-100 mb-3">
-    <div class="flex items-center space-x-2">
-      <span class="text-2xl animate-spin" style="animation-duration: 9s;">🌸</span>
-      <h1 class="font-extrabold text-pink-500 text-lg sm:text-xl tracking-wider">きらきら★九九マスター</h1>
+  <header class="w-full max-w-3xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="text-3xl animate-bounce">🐣</div>
+      <h1 class="text-lg md:text-xl font-black tracking-wider text-[#FF70A6]">
+        きらきら★九九マスター
+      </h1>
     </div>
-    <div class="flex items-center space-x-2">
-      <!-- サウンドON/OFFトグル -->
-      <button id="soundToggleBtn" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-pink-50 hover:bg-pink-100 text-pink-600 text-sm font-bold border border-pink-200 transition">
+    <div class="flex items-center gap-2">
+      <button id="soundToggleBtn" onclick="toggleSound()" class="bg-white border-2 border-pink-200 active:bg-pink-50 px-3 py-1 rounded-full text-xs font-bold text-gray-600 shadow-sm flex items-center gap-1">
         <span id="soundIcon">🔊</span>
-        <span id="soundText" class="hidden sm:inline">おと ON</span>
+        <span id="soundText">おとON</span>
       </button>
     </div>
   </header>
 
-  <!-- メインコンテンツ領域 -->
-  <main class="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center items-center">
+  <!-- メインコンテンツ -->
+  <main class="w-full max-w-3xl mx-auto px-4 py-2 flex-1 flex flex-col justify-center">
 
-    <!-- ==============================================
-         1. スタート画面
-    ============================================== -->
-    <section id="screenStart" class="w-full flex flex-col items-center py-6 px-4">
-      <div class="relative bg-white rounded-3xl p-6 sm:p-10 shadow-xl border-4 border-pink-200 max-w-lg w-full text-center">
-        <!-- キャラクターアイコン: ひよこ 🐣 -->
-        <div class="w-24 h-24 sm:w-28 sm:h-28 mx-auto -mt-16 bg-gradient-to-tr from-yellow-300 via-amber-200 to-yellow-100 rounded-full flex items-center justify-center shadow-lg border-4 border-white animate-bounceGentle">
-          <span class="text-5xl sm:text-6xl filter drop-shadow">🐣</span>
-        </div>
+    <!-- 1. スタート画面 -->
+    <div id="startScreen" class="w-full max-w-lg mx-auto bg-white rounded-3xl p-5 md:p-7 border-4 border-pink-200 shadow-xl text-center flex flex-col items-center">
+      <div class="text-6xl md:text-7xl mb-1 animate-float">🐣</div>
+      <h2 class="text-2xl md:text-3xl font-black text-[#5A4E65] mb-1">九九にちょうせん！</h2>
+      <p class="text-xs md:text-sm text-gray-400 font-bold mb-4">れんしゅうする だん をえらんでね</p>
 
-        <h2 class="text-2xl sm:text-3xl font-black text-pink-600 mt-4 mb-1 tracking-wide">
-          九九にチャレンジ！
-        </h2>
-        <p class="text-sm sm:text-base text-gray-500 font-medium mb-5">
-          ぴよちゃんと いっしょに れんしゅうしよう🐣<br>
-          ぜんぶで <strong class="text-pink-500 text-lg font-bold">10もん</strong> 出題されるよ！
-        </p>
-
-        <!-- 段の選択セクション (まだ習っていない段を除外できる) -->
-        <div class="bg-amber-50/70 border-2 border-amber-200 rounded-2xl p-4 mb-5 text-left">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs sm:text-sm font-black text-amber-800 flex items-center space-x-1">
-              <span>🎯</span>
-              <span>れんしゅうする「だん」をえらぶ</span>
-            </span>
-            <!-- かんたん選択ボタン -->
-            <div class="flex space-x-1.5 text-xs">
-              <button type="button" id="btnSelectCommon" class="px-2.5 py-1 rounded-full bg-white hover:bg-amber-100 text-amber-700 font-bold border border-amber-300 transition shadow-sm">
-                2〜5のだん
-              </button>
-              <button type="button" id="btnSelectAll" class="px-2.5 py-1 rounded-full bg-amber-400 hover:bg-amber-500 text-white font-black shadow-sm transition">
-                ぜんぶ
-              </button>
-            </div>
-          </div>
-          <p class="text-[11px] text-amber-700/80 mb-3 font-bold">
-            まだならっていない段のチェックを外せば、習った段だけで遊べるよ！
-          </p>
-
-          <!-- 1〜9の段チェックボックス一覧 (可愛いチップボタン形式) -->
-          <div class="grid grid-cols-3 gap-2" id="danCheckboxContainer">
-            <!-- 1〜9のチェックボックス (JSで連動・ラベル付き) -->
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-amber-200 bg-white hover:bg-yellow-50 font-black text-sm text-slate-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="1">
-              <span>1 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-pink-400 bg-pink-50/60 font-black text-sm text-pink-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="2" checked>
-              <span>2 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-pink-400 bg-pink-50/60 font-black text-sm text-pink-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="3" checked>
-              <span>3 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-pink-400 bg-pink-50/60 font-black text-sm text-pink-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="4" checked>
-              <span>4 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-pink-400 bg-pink-50/60 font-black text-sm text-pink-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="5" checked>
-              <span>5 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-amber-200 bg-white hover:bg-yellow-50 font-black text-sm text-slate-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="6">
-              <span>6 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-amber-200 bg-white hover:bg-yellow-50 font-black text-sm text-slate-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="7">
-              <span>7 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-amber-200 bg-white hover:bg-yellow-50 font-black text-sm text-slate-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="8">
-              <span>8 のだん</span>
-            </label>
-            <label class="dan-select-label cursor-pointer flex items-center justify-center space-x-1.5 p-2 rounded-xl border-2 border-amber-200 bg-white hover:bg-yellow-50 font-black text-sm text-slate-700 transition">
-              <input type="checkbox" class="dan-checkbox w-4 h-4 accent-pink-500 rounded cursor-pointer" value="9">
-              <span>9 のだん</span>
-            </label>
-          </div>
-          <!-- 選択エラーメッセージ（1つも選ばれていない場合） -->
-          <p id="danSelectAlert" class="hidden text-xs text-rose-500 font-black mt-2 text-center animate-bounce">
-            ⚠️ すくなくとも 1つの段 をえらんでね！
-          </p>
-        </div>
-
-        <!-- スタートボタン -->
-        <button id="btnStartGame" class="btn-3d w-full py-4 rounded-2xl bg-gradient-to-r from-pink-400 via-rose-400 to-pink-500 hover:from-pink-500 hover:to-rose-500 text-white font-black text-2xl tracking-wider shadow-pink-300/50 mb-5 flex items-center justify-center space-x-3">
-          <span>すたーと！</span>
-          <span class="text-3xl">🚀</span>
-        </button>
-
-        <!-- 苦手な段の事前チェック・親御さんメモ -->
-        <div class="mt-4 pt-4 border-t border-pink-100 text-left">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-pink-500 uppercase flex items-center">
-              📊 これまでのれんしゅうデータ
-            </span>
-            <button id="btnResetHistory" class="text-[11px] text-gray-400 hover:text-rose-500 underline">
-              データをリセット
-            </button>
-          </div>
-          <div id="startScreenWeakStats" class="text-xs text-gray-600 bg-pink-50/70 p-3 rounded-xl border border-pink-100">
-            データ集計中...
+      <!-- 段の選択パネル -->
+      <div class="w-full bg-[#FFF5F8] border-2 border-pink-200 rounded-2xl p-3.5 mb-4">
+        <div class="flex justify-between items-center mb-2.5">
+          <span class="text-xs font-black text-pink-500 uppercase tracking-wider">★ 出題する段</span>
+          <div class="flex gap-1.5 text-xs">
+            <button onclick="selectDanPreset('2-5')" class="bg-white border border-pink-300 active:bg-pink-100 text-pink-600 font-bold px-2 py-1 rounded-lg">2〜5のだん</button>
+            <button onclick="selectDanPreset('all')" class="bg-pink-400 active:bg-pink-500 text-white font-bold px-2 py-1 rounded-lg">ぜんぶ</button>
           </div>
         </div>
-      </div>
-    </section>
-
-
-    <!-- ==============================================
-         2. クイズプレイ画面 (左: 問題 / 右: テンキー)
-    ============================================== -->
-    <section id="screenQuiz" class="w-full hidden flex-col items-center relative">
-      
-      <!-- 即時判定オーバーレイ (◯ピロン♪ / ✕ぶぶー！) -->
-      <div id="feedbackOverlay" class="hidden absolute inset-0 z-50 rounded-3xl bg-white/75 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-none transition-all">
-        <div id="feedbackCard" class="transform flex flex-col items-center justify-center p-6 rounded-3xl shadow-2xl border-4 bg-white">
-          <div id="feedbackIcon" class="text-8xl sm:text-9xl mb-2 drop-shadow-md leading-none">⭕️</div>
-          <div id="feedbackText" class="text-3xl sm:text-4xl font-black tracking-widest drop-shadow-sm">せいかい！</div>
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="danCheckboxContainer">
+          <!-- 1〜9のチェックボックス -->
         </div>
+        <p id="danWarning" class="text-red-500 text-xs font-bold mt-2 hidden">※ すくなくとも1つは えらんでね！</p>
       </div>
 
-      <!-- 上部ステータスバー: 進捗ゲージと問題数 -->
-      <div class="w-full bg-white/90 backdrop-blur rounded-2xl p-3 shadow-sm border border-pink-100 mb-4 flex items-center justify-between">
-        <div class="flex items-center space-x-2">
-          <span class="bg-pink-100 text-pink-600 font-black px-3 py-1 rounded-full text-sm sm:text-base">
-            だい <span id="currentQuestionNum" class="text-lg">1</span> / 10 もん
-          </span>
+      <!-- 履歴表示パネル -->
+      <div class="w-full mb-5 text-left bg-amber-50/70 border-2 border-amber-200/80 rounded-2xl p-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📊</span>
+          <div>
+            <div class="text-[11px] font-bold text-amber-800">これまでの きろく</div>
+            <div id="historySummary" class="text-xs text-amber-700">まだ れんしゅうデータがありません</div>
+          </div>
         </div>
-        <!-- 進行プログレスバー -->
-        <div class="flex-1 max-w-[160px] sm:max-w-xs mx-3 bg-pink-100 h-3 rounded-full overflow-hidden">
-          <div id="quizProgressBar" class="h-full bg-gradient-to-r from-pink-400 to-yellow-400 transition-all duration-300 w-0"></div>
-        </div>
-        <!-- これまでの正解マルバツ履歴ドット -->
-        <div id="historyBadges" class="flex items-center space-x-1 overflow-x-auto py-1">
-          <!-- JSで動的に○×アイコンを追加 -->
-        </div>
+        <button onclick="resetStats()" class="text-[10px] text-gray-400 active:text-red-500 underline">きろく消去</button>
       </div>
 
-      <!-- メインエリア: 2カラム (左: 問題 / 右: テンキー入力) -->
-      <div class="w-full grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
+      <button onclick="startGame()" class="pop-btn w-full py-3.5 md:py-4 bg-[#FF70A6] active:bg-[#ff5c99] text-white text-xl md:text-2xl font-black rounded-2xl shadow-pop-pink tracking-widest flex items-center justify-center gap-2">
+        <span>すたーと！</span>
+        <span class="text-2xl">🚀</span>
+      </button>
+    </div>
+
+    <!-- 2. クイズ画面 -->
+    <div id="quizScreen" class="w-full hidden">
+      <!-- 進行ヘッダー -->
+      <div class="mb-3 bg-white/90 backdrop-blur rounded-2xl px-4 py-2 border-2 border-pink-100 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="bg-pink-100 text-[#FF70A6] text-xs font-black px-2 py-0.5 rounded-md">もんだい</span>
+          <span id="questionCounter" class="text-base md:text-lg font-black text-gray-700 font-fredoka">1 / 10</span>
+        </div>
+        <div class="flex gap-1.5" id="progressDots"></div>
+        <button onclick="quitToStart()" class="text-xs text-gray-400 active:text-gray-600 font-bold px-2 py-1">やめる</button>
+      </div>
+
+      <!-- 2カラム構成（左：問題、右：キーパッド） -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-stretch relative">
         
-        <!-- 左側カラム: 問題表示カード -->
-        <div class="md:col-span-6 bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-pink-200 flex flex-col justify-between items-center relative overflow-hidden min-h-[280px]">
+        <!-- 左側：問題エリア -->
+        <div class="md:col-span-6 bg-white rounded-3xl p-4 md:p-6 border-4 border-pink-200 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden min-h-[200px] md:min-h-[300px]">
           
-          <!-- 背景アクセント装飾 -->
-          <div class="absolute -right-6 -bottom-6 text-8xl opacity-10 pointer-events-none select-none">
-            ⭐
-          </div>
-          <div class="absolute -left-6 -top-6 text-7xl opacity-10 pointer-events-none select-none">
-            🎀
-          </div>
-
-          <!-- 段のヒントバッジ -->
-          <div class="w-full flex justify-between items-center z-10">
-            <span id="currentDanBadge" class="bg-yellow-100 text-amber-700 font-black px-3 py-1 rounded-full text-xs sm:text-sm border border-yellow-200">
-              ◯のだん
-            </span>
-            <span class="text-xs text-gray-400 font-bold">じかんせいげん なし</span>
+          <div class="flex items-center gap-2">
+            <div class="text-3xl animate-bounce">🐣</div>
+            <div id="cheerBubble" class="bg-amber-100 text-amber-800 text-xs font-black px-3 py-1 rounded-full border border-amber-300">
+              がんばるピヨ〜！✨
+            </div>
           </div>
 
           <!-- 計算式 -->
-          <div class="my-auto py-4 text-center z-10">
-            <div class="flex items-center justify-center space-x-2 sm:space-x-4">
-              <span id="numA" class="font-fredoka text-5xl sm:text-7xl font-extrabold text-pink-500 drop-shadow-sm">7</span>
-              <span class="text-4xl sm:text-6xl font-black text-amber-400">×</span>
-              <span id="numB" class="font-fredoka text-5xl sm:text-7xl font-extrabold text-purple-500 drop-shadow-sm">8</span>
-              <span class="text-4xl sm:text-6xl font-black text-gray-400">=</span>
+          <div class="my-4 md:my-6 flex items-center justify-center gap-2 md:gap-3 text-5xl md:text-6xl font-black font-fredoka text-[#5A4E65]">
+            <span id="num1" class="text-[#FF70A6]">7</span>
+            <span class="text-gray-300 text-4xl">×</span>
+            <span id="num2" class="text-[#4CC9F0]">8</span>
+            <span class="text-gray-300 text-4xl">=</span>
+          </div>
+
+          <!-- 回答枠 -->
+          <div class="w-full flex flex-col items-center">
+            <span class="text-[11px] font-bold text-gray-400 mb-1">あなたの こたえ</span>
+            <div id="answerDisplay" class="w-40 h-14 bg-[#FFF9FB] border-4 border-dashed border-pink-300 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black font-fredoka text-[#FF70A6] shadow-inner tracking-wider">
+              <span id="cursor" class="animate-pulse text-pink-300 text-2xl">|</span>
             </div>
+          </div>
 
-            <!-- 入力された数字のプレビューボックス -->
-            <div class="mt-5 flex justify-center items-center">
-              <div id="displayAnswer" class="min-w-[130px] h-16 sm:h-20 bg-pink-50 border-4 border-dashed border-pink-300 rounded-2xl flex items-center justify-center px-4">
-                <span id="displayAnswerText" class="text-4xl sm:text-5xl font-extrabold text-slate-800 tracking-wider">?</span>
-              </div>
+          <!-- ⭕️ / ❌ ポップアップ -->
+          <div id="instantFeedbackOverlay" class="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-20 hidden">
+            <div class="text-center animate-pop-in">
+              <div id="feedbackIcon" class="text-7xl md:text-8xl mb-1">⭕️</div>
+              <div id="feedbackText" class="text-2xl md:text-3xl font-black text-pink-500">せいかい！ピヨ✨</div>
             </div>
           </div>
 
-          <!-- 応援キャラクター吹き出し: ひよこ 🐣 -->
-          <div class="w-full bg-amber-50/80 border border-amber-200 rounded-2xl p-2.5 flex items-center space-x-3 z-10">
-            <span id="mascotEmotion" class="text-3xl filter drop-shadow">🐣</span>
-            <p id="cheerMessage" class="text-xs sm:text-sm text-amber-900 font-bold">
-              ぴよぴよ！ゆっくりでだいじょうぶだよ！
-            </p>
-          </div>
         </div>
 
-        <!-- 右側カラム: テンキー＆回答ボタン -->
-        <div class="md:col-span-6 bg-white rounded-3xl p-5 sm:p-6 shadow-xl border-4 border-pink-200 flex flex-col justify-between">
+        <!-- 右側：テンキー -->
+        <div class="md:col-span-6 bg-white rounded-3xl p-4 border-4 border-pink-200 shadow-xl flex flex-col justify-between">
           
-          <div class="text-xs font-bold text-gray-400 mb-2 flex justify-between items-center px-1">
-            <span>すうじをおしてね</span>
-            <span class="text-[11px] text-pink-400">キーボード入力もOK!</span>
-          </div>
-
-          <!-- 数字ボタン (1-9, 0) -->
-          <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="1">1</button>
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="2">2</button>
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="3">3</button>
+          <div class="grid grid-cols-3 gap-2 mb-2.5">
+            <button type="button" onclick="handleNumInput('1')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">1</button>
+            <button type="button" onclick="handleNumInput('2')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">2</button>
+            <button type="button" onclick="handleNumInput('3')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">3</button>
+            <button type="button" onclick="handleNumInput('4')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">4</button>
+            <button type="button" onclick="handleNumInput('5')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">5</button>
+            <button type="button" onclick="handleNumInput('6')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">6</button>
+            <button type="button" onclick="handleNumInput('7')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">7</button>
+            <button type="button" onclick="handleNumInput('8')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">8</button>
+            <button type="button" onclick="handleNumInput('9')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">9</button>
             
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="4">4</button>
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="5">5</button>
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="6">6</button>
-            
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="7">7</button>
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="8">8</button>
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="9">9</button>
-            
-            <!-- クリアボタン -->
-            <button type="button" id="btnClear" class="keypad-btn bg-rose-50 hover:bg-rose-100 text-rose-500 font-black text-lg py-3 rounded-2xl border-2 border-rose-200 flex items-center justify-center">
-              <span>けす ⌫</span>
-            </button>
-            <!-- 0ボタン -->
-            <button type="button" class="keypad-btn bg-white hover:bg-pink-50 text-slate-700 font-black text-2xl sm:text-3xl py-3 sm:py-3.5 rounded-2xl border-2 border-pink-100" data-num="0">0</button>
-            <!-- 全部消すボタン -->
-            <button type="button" id="btnResetInput" class="keypad-btn bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-sm py-3 rounded-2xl border-2 border-slate-200 flex items-center justify-center">
-              <span>クリア</span>
-            </button>
+            <button type="button" onclick="handleNumClear()" class="pop-btn h-13 md:h-15 py-3 bg-gray-100 active:bg-gray-200 text-gray-500 border-2 border-gray-200 text-xs font-black rounded-2xl shadow-pop flex items-center justify-center">消去</button>
+            <button type="button" onclick="handleNumInput('0')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">0</button>
+            <button type="button" onclick="handleNumBackspace()" class="pop-btn h-13 md:h-15 py-3 bg-amber-50 active:bg-amber-100 text-amber-700 border-2 border-amber-200 text-lg font-black rounded-2xl shadow-pop flex items-center justify-center">⌫</button>
           </div>
 
-          <!-- 回答するアクションボタン -->
-          <div class="mt-4">
-            <button type="button" id="btnSubmitAnswer" class="btn-3d w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xl sm:text-2xl tracking-wide flex items-center justify-center space-x-2 shadow-teal-300">
-              <span>こたえる！</span>
-              <span class="text-2xl">✨</span>
-            </button>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-
-    <!-- ==============================================
-         3. 添削・結果画面 (100点満点表記 & 添削一覧 & 苦手分析)
-    ============================================== -->
-    <section id="screenResult" class="w-full hidden flex-col items-center py-2 px-1 sm:px-4">
-      
-      <div class="w-full bg-white rounded-3xl p-5 sm:p-8 shadow-xl border-4 border-pink-200">
-        
-        <!-- 上部ヘッダー：点数とメッセージ -->
-        <div class="text-center pb-6 border-b-2 border-dashed border-pink-200">
-          <div class="inline-block p-2 bg-pink-100 rounded-full mb-2">
-            <span id="resultEmoji" class="text-4xl sm:text-5xl">👑</span>
-          </div>
-          <h2 id="resultTitle" class="text-2xl sm:text-3xl font-black text-pink-600 mb-1">
-            おつかれさま！
-          </h2>
-          <p id="resultComment" class="text-sm sm:text-base font-bold text-gray-600">
-            さいごまでよくがんばったね！
-          </p>
-
-          <!-- 得点表示 (100点満点) -->
-          <div class="my-4 flex items-baseline justify-center">
-            <span class="text-gray-400 font-extrabold text-xl sm:text-2xl mr-2">とくてん：</span>
-            <span id="finalScore" class="font-fredoka text-6xl sm:text-7xl font-black text-rose-500 tracking-tight">100</span>
-            <span class="text-2xl sm:text-3xl font-black text-gray-500 ml-1">/ 100 てん</span>
-          </div>
-          
-          <div id="perfectBadge" class="hidden inline-flex items-center space-x-2 bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 px-4 py-1.5 rounded-full font-black text-sm shadow-md animate-bounce">
-            <span>🎉</span>
-            <span>100てん まんてんはなまる！天才！</span>
-            <span>💮</span>
-          </div>
-        </div>
-
-        <!-- 親御さん向け＆復習：苦手な段の分析パネル -->
-        <div class="my-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-4 sm:p-5 border-2 border-pink-200">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base sm:text-lg font-black text-purple-700 flex items-center space-x-2">
-              <span>📈</span>
-              <span>にがてな段の分析 (おうちのひとと見てね)</span>
-            </h3>
-            <span class="text-xs bg-white text-purple-600 px-2.5 py-1 rounded-full font-bold border border-purple-200">
-              つみあげデータ
-            </span>
-          </div>
-          
-          <div id="weakDanAdvice" class="text-sm font-bold text-slate-700 mb-4 bg-white/80 p-3 rounded-xl border border-purple-100">
-            <!-- JSで動的にアドバイスを挿入 -->
-          </div>
-
-          <!-- 段ごとの正解率インジケーター (1の段〜9の段) -->
-          <div class="grid grid-cols-3 sm:grid-cols-9 gap-2 text-center" id="danGridStats">
-            <!-- JSで各段のチップを生成 -->
-          </div>
-        </div>
-
-        <!-- 10問の添削一覧テーブル -->
-        <div class="mt-6">
-          <h3 class="text-base sm:text-lg font-black text-slate-700 mb-3 flex items-center space-x-2">
-            <span>✏️</span>
-            <span>こたえあわせ（全10問）</span>
-          </h3>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="reviewListContainer">
-            <!-- JSで添削カードを生成 -->
-          </div>
-        </div>
-
-        <!-- もう一度チャレンジボタン -->
-        <div class="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
-          <button id="btnPlayAgain" class="btn-3d w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-yellow-400 hover:from-pink-600 hover:to-yellow-500 text-white font-black text-xl tracking-wider shadow-pink-300 flex items-center justify-center space-x-3">
-            <span>もういちどチャレンジする！</span>
-            <span class="text-2xl">🔁</span>
+          <button id="submitBtn" type="button" onclick="submitAnswer()" class="pop-btn w-full py-3.5 bg-[#06D6A0] active:bg-[#05b88a] text-white text-xl md:text-2xl font-black rounded-2xl shadow-pop-green tracking-wider flex items-center justify-center gap-1.5">
+            <span>こたえる！</span>
+            <span>✨</span>
           </button>
         </div>
 
       </div>
-    </section>
+    </div>
+
+    <!-- 3. 添削・結果画面 -->
+    <div id="resultScreen" class="w-full max-w-xl mx-auto bg-white rounded-3xl p-5 md:p-6 border-4 border-pink-200 shadow-xl hidden">
+      
+      <div class="text-center mb-4">
+        <div id="resultChick" class="text-6xl mb-1 animate-float">🐣</div>
+        <div class="text-xs font-black text-pink-500 tracking-wider">けっかはっぴょう！</div>
+        <div class="flex items-baseline justify-center gap-1 font-fredoka mt-0.5">
+          <span id="finalScore" class="text-5xl md:text-6xl font-black text-[#FF70A6]">100</span>
+          <span class="text-xl md:text-2xl font-bold text-gray-400">/ 100てん</span>
+        </div>
+        <div id="resultComment" class="mt-1 text-sm md:text-base font-black text-[#5A4E65]">
+          かんぺきピヨ〜！！すごすぎるピヨ！🎉
+        </div>
+      </div>
+
+      <!-- 添削一覧 -->
+      <div class="mb-4">
+        <h3 class="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+          <span>📝</span> 10もんの てんさく
+        </h3>
+        <div id="reviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 overflow-y-auto p-1 border-2 border-gray-100 rounded-2xl bg-gray-50/50"></div>
+      </div>
+
+      <!-- 苦手分析 -->
+      <div class="mb-4 bg-pink-50/60 border-2 border-pink-200 rounded-2xl p-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <h4 class="text-xs font-black text-pink-600 flex items-center gap-1">
+            <span>📊</span> おうちの方向け：段ごとの分析
+          </h4>
+          <span class="text-[9px] text-gray-400 font-bold">自動きろく</span>
+        </div>
+        <div id="weakDanAnalysis" class="text-xs text-gray-600 leading-relaxed"></div>
+      </div>
+
+      <button onclick="goToStart()" class="pop-btn w-full py-3.5 bg-[#FF70A6] active:bg-[#ff5c99] text-white text-lg md:text-xl font-black rounded-2xl shadow-pop-pink flex items-center justify-center gap-2">
+        <span>もういちど チャレンジ！</span>
+        <span>🐣</span>
+      </button>
+
+    </div>
 
   </main>
 
-  <!-- フッター -->
-  <footer class="w-full text-center py-3 text-xs text-pink-400 font-bold">
-    <span>🌸 まいにちのこつこつ九九れんしゅう 🌸</span>
+  <footer class="w-full text-center py-2 text-[11px] text-pink-300 font-bold">
+    きらきら★九九マスター by ぴよちゃん 🐣
   </footer>
 
-
-  <!-- ==============================================
-       JavaScript ロジック (Web Audio / ゲームフロー / 分析)
-  ============================================== -->
   <script>
-    /* --- 1. サウンド管理 (Web Audio API: 外部音源不要) --- */
-    class SoundEffects {
-      constructor() {
-        this.ctx = null;
-        this.enabled = true;
-      }
-      init() {
-        if (!this.ctx) {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (AudioContext) {
-            this.ctx = new AudioContext();
-          }
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume();
-        }
-      }
-      playTone(freq, duration, type = 'sine', gainVal = 0.15) {
-        if (!this.enabled) return;
-        this.init();
-        if (!this.ctx) return;
-        try {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = type;
-          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + duration);
-        } catch(e) {}
-      }
+    // --- ズーム（ピンチイン/アウト・ダブルタップ）のJavaScriptインターセプト ---
+    // iOS Safariでメタタグを無視してズームされるのを完全に防止
+    document.addEventListener('gesturestart', function(e) {
+      e.preventDefault();
+    }, { passive: false });
 
-      // ◯ ピロン♪ (爽やかで明るい高音の2和音チャイム)
-      playPiron() {
-        if (!this.enabled) return;
-        this.init();
-        // 第1音: 高めのE6 (1318.51Hz)
-        this.playTone(1318.51, 0.18, 'sine', 0.22);
-        // 第2音: 少し遅れて抜けるような高音B6 (1975.53Hz)
-        setTimeout(() => {
-          this.playTone(1975.53, 0.35, 'triangle', 0.25);
-        }, 90);
-      }
+    document.addEventListener('gesturechange', function(e) {
+      e.preventDefault();
+    }, { passive: false });
 
-      // ✕ ぶぶー！ (子どもが怖がらない、まろやかでユーモラスなブザー音)
-      playBuboo() {
-        if (!this.enabled) return;
-        this.init();
-        // 1回目の「ぶ」
-        this.playTone(180, 0.18, 'sawtooth', 0.14);
-        this.playTone(135, 0.18, 'sine', 0.16); // 低音補強で丸みをもたせる
-        // 2回目の「ぶー！」
-        setTimeout(() => {
-          this.playTone(160, 0.32, 'sawtooth', 0.15);
-          this.playTone(120, 0.32, 'sine', 0.18);
-        }, 160);
-      }
+    document.addEventListener('gestureend', function(e) {
+      e.preventDefault();
+    }, { passive: false });
 
-      playKeyTap() {
-        if (!this.enabled) return;
-        this.playTone(800, 0.04, 'sine', 0.04);
+    // 2本指タップズーム抑止
+    document.addEventListener('touchstart', function(e) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
       }
-      playFanfare() {
-        if (!this.enabled) return;
-        const notes = [523.25, 659.25, 783.99, 1046.50];
-        notes.forEach((f, i) => {
-          setTimeout(() => this.playTone(f, 0.3, 'triangle', 0.2), i * 140);
-        });
+    }, { passive: false });
+
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(e) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault(); // ダブルタップズーム防止
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    // --- アプリケーションロジック ---
+    const TOTAL_QUESTIONS = 10;
+    let selectedDans = [2, 3, 4, 5];
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let currentAnswerInput = "";
+    let userResults = [];
+    let isProcessing = false;
+    let soundEnabled = true;
+
+    // Web Audio API
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
       }
     }
 
-    const sound = new SoundEffects();
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundIcon').innerText = soundEnabled ? '🔊' : '🔇';
+      document.getElementById('soundText').innerText = soundEnabled ? 'おとON' : 'おとOFF';
+      if (soundEnabled) initAudio();
+    }
 
-    /* --- 2. ローカルストレージ管理 (九九の段ごとの成績蓄積) --- */
-    const STORAGE_KEY = 'kuku_practice_stats_v1';
+    function playCorrectSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        playTone(1318.51, now, 0.18, 'sine', 0.25); // E6
+        playTone(1975.53, now + 0.12, 0.35, 'sine', 0.25); // B6
+      } catch (e) {}
+    }
 
-    function getStats() {
+    function playWrongSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        playTone(160, now, 0.14, 'triangle', 0.3);
+        playTone(130, now + 0.15, 0.28, 'triangle', 0.35);
+      } catch (e) {}
+    }
+
+    function playTapSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        playTone(600, audioCtx.currentTime, 0.04, 'sine', 0.1);
+      } catch (e) {}
+    }
+
+    function playFanfareSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          playTone(freq, now + idx * 0.1, 0.22, 'triangle', 0.2);
+        });
+        playTone(1046.50, now + 0.42, 0.55, 'sine', 0.3);
+      } catch (e) {}
+    }
+
+    function playTone(freq, startTime, duration, type = 'sine', maxVol = 0.2) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.001, startTime);
+      gain.gain.exponentialRampToValueAtTime(maxVol, startTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+    }
+
+    // 学習データ保存
+    const STORAGE_KEY = 'kuku_chick_stats_v2';
+    function getStoredStats() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) return JSON.parse(raw);
-      } catch(e) {}
-      // デフォルト: 1〜9の段
-      const def = {};
-      for(let i = 1; i <= 9; i++) {
-        def[i] = { total: 0, wrong: 0 };
-      }
-      return def;
+      } catch (e) {}
+      const initStats = {};
+      for (let i = 1; i <= 9; i++) initStats[i] = { attempts: 0, correct: 0 };
+      return initStats;
     }
 
-    function saveStats(stats) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-      } catch(e) {}
-    }
-
-    function recordQuestionResult(dan, isCorrect) {
-      const stats = getStats();
-      if (!stats[dan]) stats[dan] = { total: 0, wrong: 0 };
-      stats[dan].total += 1;
-      if (!isCorrect) {
-        stats[dan].wrong += 1;
-      }
-      saveStats(stats);
+    function saveStats(results) {
+      const stats = getStoredStats();
+      results.forEach(item => {
+        const dan = item.a;
+        if (!stats[dan]) stats[dan] = { attempts: 0, correct: 0 };
+        stats[dan].attempts += 1;
+        if (item.isCorrect) stats[dan].correct += 1;
+      });
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stats)); } catch (e) {}
+      updateHistorySummary();
     }
 
     function resetStats() {
-      localStorage.removeItem(STORAGE_KEY);
-      renderStartStats();
-    }
-
-    /* --- 3. クイズステート管理 --- */
-    const TOTAL_QUESTIONS = 10;
-    let questions = [];
-    let currentIndex = 0;
-    let currentInput = '';
-    let resultsHistory = []; // { a, b, answer, childAnswer, isCorrect }
-    let isSubmitting = false; // 重複送信防止フラグ
-    let selectedDans = [2, 3, 4, 5]; // 初期選択
-
-    // 応援メッセージ集（ひよこモチーフ🐣）
-    const cheerMessages = [
-      { text: "ぴよぴよ！おちついて計算してみてね🐣", emoji: "🐣" },
-      { text: "すごい集中力！その調子ピヨ！✨", emoji: "🐥" },
-      { text: "まちがえても平気！練習あるのみピヨ！❤️", emoji: "🐣" },
-      { text: "九九のリズムを思い出してみてね〜！🎶", emoji: "🐥" },
-      { text: "ぴよちゃんも応援してるよ！ファイト〜！💪", emoji: "🐣" },
-    ];
-
-    /* --- 4. DOM要素 --- */
-    const screenStart = document.getElementById('screenStart');
-    const screenQuiz = document.getElementById('screenQuiz');
-    const screenResult = document.getElementById('screenResult');
-
-    const btnStartGame = document.getElementById('btnStartGame');
-    const btnPlayAgain = document.getElementById('btnPlayAgain');
-    const btnResetHistory = document.getElementById('btnResetHistory');
-    const soundToggleBtn = document.getElementById('soundToggleBtn');
-    const soundIcon = document.getElementById('soundIcon');
-    const soundText = document.getElementById('soundText');
-
-    // 段選択要素
-    const danCheckboxes = document.querySelectorAll('.dan-checkbox');
-    const btnSelectCommon = document.getElementById('btnSelectCommon');
-    const btnSelectAll = document.getElementById('btnSelectAll');
-    const danSelectAlert = document.getElementById('danSelectAlert');
-
-    // クイズ要素
-    // 段選択チェックボックスのスタイル同期 & 状態更新
-    function updateDanCheckboxesUI() {
-      danCheckboxes.forEach(cb => {
-        const label = cb.closest('.dan-select-label');
-        if (cb.checked) {
-          label.classList.add('border-pink-400', 'bg-pink-50/70', 'text-pink-700');
-          label.classList.remove('border-amber-200', 'bg-white', 'text-slate-700');
-        } else {
-          label.classList.remove('border-pink-400', 'bg-pink-50/70', 'text-pink-700');
-          label.classList.add('border-amber-200', 'bg-white', 'text-slate-700');
-        }
-      });
-    }
-
-    function getSelectedDans() {
-      const selected = [];
-      danCheckboxes.forEach(cb => {
-        if (cb.checked) selected.push(parseInt(cb.value, 10));
-      });
-      return selected;
-    }
-
-    /* --- 5. 問題生成ロジック (選ばれた段からのみ出題) --- */
-    function generateTenQuestions() {
-      const qs = [];
-      const usedPairs = new Set();
-      const stats = getStats();
-      const availableDans = getSelectedDans();
-
-      // 間違いの多い段を少し優先的に出題する重み付け
-      const weightPool = [];
-      availableDans.forEach(d => {
-        let weight = 2; // 基本出現重み
-        if (stats[d] && stats[d].wrong > 0) {
-          // 間違い回数に応じて重みを増加
-          weight += Math.min(stats[d].wrong * 2, 8);
-        }
-        for (let w = 0; w < weight; w++) {
-          weightPool.push(d);
-        }
-      });
-
-      // 10問生成（万が一選択肢が1つの段だけの場合は重複許容）
-      let attempts = 0;
-      while (qs.length < TOTAL_QUESTIONS && attempts < 200) {
-        attempts++;
-        const a = weightPool[Math.floor(Math.random() * weightPool.length)];
-        const b = Math.floor(Math.random() * 9) + 1; // 1~9
-        const pairKey = `${a}x${b}`;
-
-        // なるべく同じ組み合わせを避ける（段数が極端に少ない時は許容）
-        if (!usedPairs.has(pairKey) || attempts > 50) {
-          usedPairs.add(pairKey);
-          qs.push({ a, b, answer: a * b });
-        }
+      if (confirm("これまでの れんしゅうきろく をリセットしますか？")) {
+        localStorage.removeItem(STORAGE_KEY);
+        updateHistorySummary();
       }
+    }
 
-      // 保険：万一10問に満たない場合は補填
-      while (qs.length < TOTAL_QUESTIONS) {
-        const a = availableDans[Math.floor(Math.random() * availableDans.length)];
-        const b = Math.floor(Math.random() * 9) + 1;
-        qs.push({ a, b, answer: a * b });
+    function updateHistorySummary() {
+      const stats = getStoredStats();
+      let totalAttempts = 0;
+      let totalCorrect = 0;
+      for (let i = 1; i <= 9; i++) {
+        totalAttempts += stats[i].attempts;
+        totalCorrect += stats[i].correct;
       }
-
-      return qs;
-    }
-
-    /* --- 6. ゲーム進行 --- */
-    function startGame() {
-      selectedDans = getSelectedDans();
-      if (selectedDans.length === 0) {
-        danSelectAlert.classList.remove('hidden');
-        return;
-      }
-      danSelectAlert.classList.add('hidden');
-
-      sound.init();
-      questions = generateTenQuestions();
-      currentIndex = 0;
-      currentInput = '';
-      resultsHistory = [];
-      isSubmitting = false;
-      feedbackOverlay.classList.add('hidden');
-
-      screenStart.classList.add('hidden');
-      screenResult.classList.add('hidden');
-      screenQuiz.classList.remove('hidden');
-
-      renderHistoryBadges();
-      loadQuestion();
-    }
-
-    function loadQuestion() {
-      currentInput = '';
-      updateDisplayAnswer();
-
-      const q = questions[currentIndex];
-      numA.textContent = q.a;
-      numB.textContent = q.b;
-      currentQuestionNum.textContent = currentIndex + 1;
-      currentDanBadge.textContent = `${q.a}のだん`;
-
-      // プログレスバー更新
-      const percent = (currentIndex / TOTAL_QUESTIONS) * 100;
-      quizProgressBar.style.width = `${percent}%`;
-
-      // 応援メッセージ切り替え
-      const cheer = cheerMessages[Math.floor(Math.random() * cheerMessages.length)];
-      mascotEmotion.textContent = cheer.emoji;
-      cheerMessage.textContent = cheer.text;
-
-      // アニメーション効果
-      numA.parentElement.classList.remove('animate-pop');
-      void numA.parentElement.offsetWidth; // リフロー
-      numA.parentElement.classList.add('animate-pop');
-    }
-
-    function inputNumber(digit) {
-      if (currentInput.length >= 3) return; // 九九の答えは最大81なので3桁まで
-      sound.playKeyTap();
-      currentInput += digit;
-      updateDisplayAnswer();
-    }
-
-    function deleteOne() {
-      sound.playKeyTap();
-      currentInput = currentInput.slice(0, -1);
-      updateDisplayAnswer();
-    }
-
-    function resetInput() {
-      sound.playKeyTap();
-      currentInput = '';
-      updateDisplayAnswer();
-    }
-
-    function updateDisplayAnswer() {
-      if (currentInput === '') {
-        displayAnswerText.textContent = '?';
-        displayAnswerText.className = "text-4xl sm:text-5xl font-extrabold text-pink-300";
+      const el = document.getElementById('historySummary');
+      if (totalAttempts === 0) {
+        el.innerText = "まだ れんしゅうデータがありません";
       } else {
-        displayAnswerText.textContent = currentInput;
-        displayAnswerText.className = "text-4xl sm:text-5xl font-extrabold text-slate-800";
+        const rate = Math.round((totalCorrect / totalAttempts) * 100);
+        el.innerText = `累計 ${totalAttempts}問中 ${totalCorrect}問せいかい（正答率 ${rate}%）`;
       }
+    }
+
+    // 段選択パネル
+    function renderDanCheckboxes() {
+      const container = document.getElementById('danCheckboxContainer');
+      container.innerHTML = '';
+      for (let d = 1; d <= 9; d++) {
+        const isChecked = selectedDans.includes(d);
+        const label = document.createElement('label');
+        label.className = `flex items-center justify-center gap-1.5 p-2 rounded-xl border-2 cursor-pointer font-black text-xs md:text-sm ${
+          isChecked ? 'bg-pink-100 border-pink-400 text-pink-600 shadow-sm' : 'bg-white border-gray-200 text-gray-400'
+        }`;
+        label.innerHTML = `
+          <input type="checkbox" value="${d}" ${isChecked ? 'checked' : ''} onchange="onDanCheckboxChange()" class="accent-pink-500 w-4 h-4 pointer-events-none">
+          <span>${d}のだん</span>
+        `;
+        label.onclick = (e) => {
+          e.preventDefault();
+          if (selectedDans.includes(d)) {
+            selectedDans = selectedDans.filter(v => v !== d);
+          } else {
+            selectedDans.push(d);
+            selectedDans.sort((a,b) => a-b);
+          }
+          renderDanCheckboxes();
+          validateDanSelection();
+        };
+        container.appendChild(label);
+      }
+    }
+
+    function selectDanPreset(type) {
+      if (type === '2-5') selectedDans = [2, 3, 4, 5];
+      else if (type === 'all') selectedDans = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+      renderDanCheckboxes();
+      validateDanSelection();
+    }
+
+    function validateDanSelection() {
+      const warning = document.getElementById('danWarning');
+      if (selectedDans.length === 0) {
+        warning.classList.remove('hidden');
+        return false;
+      }
+      warning.classList.add('hidden');
+      return true;
+    }
+
+    function startGame() {
+      if (!validateDanSelection()) return;
+      initAudio();
+
+      currentQuestions = [];
+      for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+        const a = selectedDans[Math.floor(Math.random() * selectedDans.length)];
+        const b = Math.floor(Math.random() * 9) + 1;
+        currentQuestions.push({ a, b, answer: a * b });
+      }
+
+      currentIndex = 0;
+      currentAnswerInput = "";
+      userResults = [];
+      isProcessing = false;
+
+      document.getElementById('startScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('quizScreen').classList.remove('hidden');
+
+      renderProgressDots();
+      loadQuestion(currentIndex);
+    }
+
+    function renderProgressDots() {
+      const container = document.getElementById('progressDots');
+      container.innerHTML = '';
+      for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+        const dot = document.createElement('div');
+        dot.id = `dot-${i}`;
+        dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-200 transition-all';
+        container.appendChild(dot);
+      }
+    }
+
+    function updateProgressDots() {
+      for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+        const dot = document.getElementById(`dot-${i}`);
+        if (!dot) continue;
+        if (i < currentIndex) {
+          dot.className = userResults[i].isCorrect ? 'w-2.5 h-2.5 rounded-full bg-emerald-400' : 'w-2.5 h-2.5 rounded-full bg-rose-400';
+        } else if (i === currentIndex) {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-[#FF70A6] ring-2 ring-pink-200 animate-pulse';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-200';
+        }
+      }
+    }
+
+    function loadQuestion(idx) {
+      const q = currentQuestions[idx];
+      document.getElementById('questionCounter').innerText = `${idx + 1} / ${TOTAL_QUESTIONS}`;
+      document.getElementById('num1').innerText = q.a;
+      document.getElementById('num2').innerText = q.b;
+      
+      currentAnswerInput = "";
+      updateAnswerDisplay();
+      updateProgressDots();
+
+      const cheers = ["がんばるピヨ〜！✨", "落ち着いてけいさんピヨ🐣", "キミならできるピヨ！🌟", "九九マスターまであと少し！", "ぴよぴよ応援中〜！🐥"];
+      document.getElementById('cheerBubble').innerText = cheers[Math.floor(Math.random() * cheers.length)];
+    }
+
+    function updateAnswerDisplay() {
+      const display = document.getElementById('answerDisplay');
+      if (currentAnswerInput.length === 0) {
+        display.innerHTML = `<span id="cursor" class="animate-pulse text-pink-300 text-2xl">|</span>`;
+      } else {
+        display.innerText = currentAnswerInput;
+      }
+    }
+
+    function handleNumInput(numStr) {
+      if (isProcessing) return;
+      playTapSound();
+      if (currentAnswerInput.length >= 3) return;
+      currentAnswerInput += numStr;
+      updateAnswerDisplay();
+    }
+
+    function handleNumBackspace() {
+      if (isProcessing) return;
+      playTapSound();
+      if (currentAnswerInput.length > 0) {
+        currentAnswerInput = currentAnswerInput.slice(0, -1);
+        updateAnswerDisplay();
+      }
+    }
+
+    function handleNumClear() {
+      if (isProcessing) return;
+      playTapSound();
+      currentAnswerInput = "";
+      updateAnswerDisplay();
     }
 
     function submitAnswer() {
-      if (isSubmitting) return; // 連打防止
-      if (currentInput === '') {
-        // 未入力時は軽く揺らす
-        const box = document.getElementById('displayAnswer');
-        box.classList.remove('animate-shake');
-        void box.offsetWidth;
-        box.classList.add('animate-shake');
+      if (isProcessing) return;
+      if (currentAnswerInput.trim() === "") {
+        const display = document.getElementById('answerDisplay');
+        display.classList.add('animate-bounce');
+        setTimeout(() => display.classList.remove('animate-bounce'), 400);
         return;
       }
 
-      isSubmitting = true;
-      const q = questions[currentIndex];
-      const childVal = parseInt(currentInput, 10);
-      const isCorrect = (childVal === q.answer);
+      isProcessing = true;
+      const q = currentQuestions[currentIndex];
+      const userNum = parseInt(currentAnswerInput, 10);
+      const isCorrect = (userNum === q.answer);
 
-      // 成績記録
-      resultsHistory.push({
+      userResults.push({
         a: q.a,
         b: q.b,
-        answer: q.answer,
-        childAnswer: childVal,
+        correctAnswer: q.answer,
+        userAnswer: userNum,
         isCorrect: isCorrect
       });
 
-      // localStorageに蓄積（段ごとの弱点分析用）
-      recordQuestionResult(q.a, isCorrect);
+      const overlay = document.getElementById('instantFeedbackOverlay');
+      const icon = document.getElementById('feedbackIcon');
+      const text = document.getElementById('feedbackText');
 
-      // ◯ / ✕ の演出と効果音
-      showInstantFeedback(isCorrect, () => {
-        renderHistoryBadges();
-        isSubmitting = false;
+      if (isCorrect) {
+        playCorrectSound();
+        icon.innerText = "⭕️";
+        text.innerText = "せいかい！ピヨ✨";
+        text.className = "text-2xl md:text-3xl font-black text-pink-500";
+      } else {
+        playWrongSound();
+        icon.innerText = "❌";
+        text.innerText = "ぶぶー！ピヨ…";
+        text.className = "text-2xl md:text-3xl font-black text-gray-500";
+      }
 
-        // 次の問題へ、または終了画面へ
+      overlay.classList.remove('hidden');
+
+      setTimeout(() => {
+        overlay.classList.add('hidden');
         currentIndex++;
         if (currentIndex < TOTAL_QUESTIONS) {
-          loadQuestion();
+          isProcessing = false;
+          loadQuestion(currentIndex);
         } else {
-          showResults();
+          showResultScreen();
         }
-      });
+      }, 800);
     }
 
-    // ◯ピロン♪ / ✕ぶぶー！のアニメーション表示処理 (ひよこリアクション追加)
-    function showInstantFeedback(isCorrect, callback) {
-      if (isCorrect) {
-        sound.playPiron();
-        feedbackIcon.textContent = '⭕️';
-        feedbackText.textContent = 'せいかい！ピヨ✨';
-        feedbackText.className = 'text-3xl sm:text-5xl font-black tracking-widest text-emerald-500';
-        feedbackCard.className = 'transform flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl shadow-2xl border-4 bg-white border-emerald-300 animate-feedbackPop';
-      } else {
-        sound.playBuboo();
-        feedbackIcon.textContent = '❌';
-        feedbackText.textContent = 'ぶぶー！どんまいピヨ！';
-        feedbackText.className = 'text-2xl sm:text-4xl font-black tracking-widest text-rose-500';
-        feedbackCard.className = 'transform flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl shadow-2xl border-4 bg-white border-rose-300 animate-feedbackPop';
-      }
+    function showResultScreen() {
+      document.getElementById('quizScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.remove('hidden');
 
-      feedbackOverlay.classList.remove('hidden');
+      saveStats(userResults);
 
-      // 0.85秒間しっかりフィードバックを見せてから次へ切り替え
-      setTimeout(() => {
-        feedbackOverlay.classList.add('hidden');
-        if (callback) callback();
-      }, 850);
-    }
-
-    function renderHistoryBadges() {
-      historyBadges.innerHTML = '';
-      for (let i = 0; i < TOTAL_QUESTIONS; i++) {
-        const item = resultsHistory[i];
-        const span = document.createElement('span');
-        if (!item) {
-          span.className = "w-4 h-4 rounded-full bg-pink-100 border border-pink-200 inline-block";
-        } else if (item.isCorrect) {
-          span.textContent = '⭕';
-          span.className = "text-xs";
-        } else {
-          span.textContent = '❌';
-          span.className = "text-xs";
-        }
-        historyBadges.appendChild(span);
-      }
-    }
-
-    // 結果表示時のひよこメッセージ更新
-    function showResults() {
-      screenQuiz.classList.add('hidden');
-      screenResult.classList.remove('hidden');
-
-      const correctCount = resultsHistory.filter(r => r.isCorrect).length;
+      const correctCount = userResults.filter(r => r.isCorrect).length;
       const score = correctCount * 10;
-      finalScore.textContent = score;
+      document.getElementById('finalScore').innerText = score;
+
+      const chick = document.getElementById('resultChick');
+      const comment = document.getElementById('resultComment');
 
       if (score === 100) {
-        sound.playFanfare();
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 }
-        });
-        resultEmoji.textContent = "🐣";
-        resultTitle.textContent = "100点まんてん！";
-        resultComment.textContent = "すごすぎるピヨ！パーフェクト！九九マスターだね！🌸";
-        perfectBadge.classList.remove('hidden');
+        chick.innerText = "👑🐣🎉";
+        comment.innerText = "100てん満点！かんぺきピヨ〜！！すごすぎるピヨ！✨";
+        playFanfareSound();
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        }
       } else if (score >= 80) {
-        sound.playPiron();
-        resultEmoji.textContent = "🐥";
-        resultTitle.textContent = "たいへんよくできました！";
-        resultComment.textContent = "おしいピヨ！あとすこしで満点だったね！かっこいい！✨";
-        perfectBadge.classList.add('hidden');
-      } else if (score >= 60) {
-        resultEmoji.textContent = "🐣";
-        resultTitle.textContent = "よくがんばったね！";
-        resultComment.textContent = "まちがえた問題をみなおして、もう一度やってみようピヨ！💪";
-        perfectBadge.classList.add('hidden');
+        chick.innerText = "🐣💖";
+        comment.innerText = "おしい！とってもじょうずピヨ！あと少しで満点！";
+      } else if (score >= 50) {
+        chick.innerText = "🐣🌱";
+        comment.innerText = "よくがんばったピヨ！まちがえたところをふくしゅうしよう！";
       } else {
-        resultEmoji.textContent = "🐣";
-        resultTitle.textContent = "ナイスチャレンジ！";
-        resultComment.textContent = "くりかえし練習すれば絶対に覚えられるよ！いっしょに復習しようピヨ！❤️";
-        perfectBadge.classList.add('hidden');
+        chick.innerText = "🐣🐾";
+        comment.innerText = "いっしょに ゆっくり れんしゅうしていこうピヨ！応援してるよ！";
       }
 
-      // 添削リストの生成
-      reviewListContainer.innerHTML = '';
-      resultsHistory.forEach((item, idx) => {
+      const reviewContainer = document.getElementById('reviewList');
+      reviewContainer.innerHTML = '';
+      userResults.forEach((item, i) => {
         const card = document.createElement('div');
-        const isOk = item.isCorrect;
-        
-        card.className = `p-4 rounded-2xl border-2 flex items-center justify-between ${
-          isOk ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/90 border-rose-300'
+        card.className = `p-2 rounded-xl border flex items-center justify-between text-xs ${
+          item.isCorrect ? 'bg-white border-pink-100' : 'bg-rose-50 border-rose-200'
         }`;
-
         card.innerHTML = `
-          <div class="flex items-center space-x-3">
-            <span class="text-2xl">${isOk ? '⭕' : '❌'}</span>
-            <div>
-              <div class="text-base sm:text-lg font-black text-slate-800">
-                ${item.a} × ${item.b}
-              </div>
-              <div class="text-xs font-bold text-gray-500">
-                あなたのこたえ: <strong class="${isOk ? 'text-emerald-600' : 'text-rose-500'} text-sm">${item.childAnswer}</strong>
-              </div>
-            </div>
-          </div>
-          <div>
-            ${
-              isOk
-                ? `<span class="text-xs font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">せいかい！</span>`
-                : `<div class="text-right">
-                     <span class="text-[11px] font-bold text-gray-500 block">正しいこたえ</span>
-                     <span class="text-base font-black text-rose-600 bg-white px-2.5 py-0.5 rounded-lg border border-rose-200">${item.answer}</span>
-                   </div>`
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm">${item.isCorrect ? '⭕️' : '❌'}</span>
+            <span class="font-bold font-fredoka text-gray-700">${item.a} × ${item.b} =</span>
+            ${item.isCorrect 
+              ? `<span class="font-black text-pink-600 font-fredoka">${item.correctAnswer}</span>` 
+              : `<span class="line-through text-gray-400 font-bold">${item.userAnswer}</span> <span class="text-[11px] text-rose-500 font-black">（せいかい: ${item.correctAnswer}）</span>`
             }
           </div>
+          <span class="text-[9px] font-bold text-gray-400">#${i + 1}</span>
         `;
-        reviewListContainer.appendChild(card);
+        reviewContainer.appendChild(card);
       });
 
-      // 苦手な段の分析表示
-      renderAnalytics();
+      renderWeakDanAnalysis();
     }
 
-    /* --- 8. 苦手分析レンダリング --- */
-    function renderAnalytics() {
-      const stats = getStats();
-      danGridStats.innerHTML = '';
-
-      let worstDan = null;
-      let worstRate = -1;
-      let hasData = false;
-
+    function renderWeakDanAnalysis() {
+      const stats = getStoredStats();
+      const analysisEl = document.getElementById('weakDanAnalysis');
+      
+      let danRates = [];
       for (let d = 1; d <= 9; d++) {
-        const data = stats[d] || { total: 0, wrong: 0 };
-        const rate = data.total > 0 ? Math.round(((data.total - data.wrong) / data.total) * 100) : null;
-
-        if (data.total > 0) hasData = true;
-
-        // 間違い率が最も高い段を特定
-        if (data.total >= 2 && data.wrong > 0) {
-          const wrongRatio = data.wrong / data.total;
-          if (wrongRatio > worstRate) {
-            worstRate = wrongRatio;
-            worstDan = d;
-          }
+        if (stats[d].attempts > 0) {
+          const rate = Math.round((stats[d].correct / stats[d].attempts) * 100);
+          danRates.push({ dan: d, rate, attempts: stats[d].attempts, correct: stats[d].correct });
         }
-
-        // バッジカラー
-        let bg = "bg-white text-gray-400 border-gray-200";
-        let statusText = "まだなし";
-        if (rate !== null) {
-          if (rate >= 90) {
-            bg = "bg-emerald-100 text-emerald-800 border-emerald-300";
-            statusText = `${rate}%`;
-          } else if (rate >= 70) {
-            bg = "bg-yellow-100 text-amber-800 border-yellow-300";
-            statusText = `${rate}%`;
-          } else {
-            bg = "bg-rose-100 text-rose-800 border-rose-300 font-black animate-pulse";
-            statusText = `にがて!(${rate}%)`;
-          }
-        }
-
-        const col = document.createElement('div');
-        col.className = `p-2 rounded-xl border flex flex-col items-center justify-center ${bg}`;
-        col.innerHTML = `
-          <span class="text-xs font-black">${d}のだん</span>
-          <span class="text-[11px] font-bold mt-0.5">${statusText}</span>
-        `;
-        danGridStats.appendChild(col);
       }
 
-      // 親御さんへのアドバイス文面
-      if (worstDan) {
-        weakDanAdvice.innerHTML = `
-          🎯 <span class="text-rose-600 font-extrabold">${worstDan}のだん</span> でミスが出やすい傾向があります！<br>
-          お風呂や移動中などに「${worstDan}のだん」をリズムよく声に出して一緒に唱えてあげると効果的です✨
-        `;
-      } else if (hasData) {
-        weakDanAdvice.innerHTML = `
-          🌟 どの段もバランスよく正解できています！この調子でスピードと自信をつけていきましょう！
-        `;
+      if (danRates.length === 0) {
+        analysisEl.innerHTML = "<p>データがまだありません。</p>";
+        return;
+      }
+
+      const sorted = [...danRates].sort((a, b) => a.rate - b.rate);
+      const lowest = sorted[0];
+
+      let adviceHtml = "";
+      if (lowest && lowest.rate < 80) {
+        adviceHtml = `<div class="mb-2 p-2 bg-white rounded-xl border border-pink-200 text-pink-700 font-bold text-xs">💡 <strong>${lowest.dan}の段</strong>でミスが出やすい傾向があります（正答率 ${lowest.rate}%）。ここを重点練習するとグンと伸びます！</div>`;
       } else {
-        weakDanAdvice.innerHTML = `
-          れんしゅうを重ねると、ここに「にがてな段」のアドバイスが表示されます。
-        `;
+        adviceHtml = `<div class="mb-2 p-2 bg-white rounded-xl border border-emerald-200 text-emerald-700 font-bold text-xs">✨ 全体的にとてもよく解けています！この調子で得意な段を増やしましょう！</div>`;
       }
-    }
 
-    function renderStartStats() {
-      const stats = getStats();
-      const mistakes = [];
+      let badgesHtml = `<div class="grid grid-cols-3 sm:grid-cols-5 gap-1 mt-1.5">`;
       for (let d = 1; d <= 9; d++) {
-        if (stats[d] && stats[d].wrong > 0) {
-          mistakes.push({ dan: d, count: stats[d].wrong });
+        const data = stats[d];
+        if (data.attempts === 0) {
+          badgesHtml += `<div class="p-1 bg-gray-100 rounded-lg text-center text-[10px] text-gray-400">${d}の段: -</div>`;
+        } else {
+          const r = Math.round((data.correct / data.attempts) * 100);
+          const color = r >= 80 ? 'bg-emerald-100 text-emerald-700' : (r >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700');
+          badgesHtml += `<div class="p-1 ${color} rounded-lg text-center font-bold text-[10px]">${d}の段: ${r}%</div>`;
         }
       }
-      if (mistakes.length === 0) {
-        startScreenWeakStats.innerHTML = `
-          ✨ まだまちがえた履歴はありません。パーフェクトを目指してスタートしよう！
-        `;
-      } else {
-        // 間違いが多い順
-        mistakes.sort((a,b) => b.count - a.count);
-        const top = mistakes.slice(0, 3).map(m => `<strong>${m.dan}の段</strong> (${m.count}回ミス)`).join('、 ');
-        startScreenWeakStats.innerHTML = `
-          💡 <strong>よくまちがえやすい段:</strong> ${top}<br>
-          <span class="text-[11px] text-gray-500">※練習するほど自動で苦手な段が優先して出題されるようになります。</span>
-        `;
+      badgesHtml += `</div>`;
+
+      analysisEl.innerHTML = adviceHtml + badgesHtml;
+    }
+
+    function goToStart() {
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('quizScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      updateHistorySummary();
+    }
+
+    function quitToStart() {
+      if (confirm("スタートがめんにもどるピヨ？")) {
+        goToStart();
       }
     }
 
-    /* --- 9. イベントリスナー --- */
-    // スタート＆リトライ
-    btnStartGame.addEventListener('click', startGame);
-    btnPlayAgain.addEventListener('click', () => {
-      // 結果画面からもう一度押した時は、段選択も変えられるようスタート画面へ戻す
-      screenResult.classList.add('hidden');
-      screenStart.classList.remove('hidden');
-      renderStartStats();
-    });
-
-    // 段チェックボックス変更
-    danCheckboxes.forEach(cb => {
-      cb.addEventListener('change', () => {
-        danSelectAlert.classList.add('hidden');
-        updateDanCheckboxesUI();
-      });
-    });
-
-    // クイック選択: 2〜5の段 (小2前半の定番)
-    btnSelectCommon.addEventListener('click', () => {
-      danCheckboxes.forEach(cb => {
-        const val = parseInt(cb.value, 10);
-        cb.checked = (val >= 2 && val <= 5);
-      });
-      danSelectAlert.classList.add('hidden');
-      updateDanCheckboxesUI();
-      sound.playKeyTap();
-    });
-
-    // クイック選択: ぜんぶ (1〜9の段)
-    btnSelectAll.addEventListener('click', () => {
-      danCheckboxes.forEach(cb => {
-        cb.checked = true;
-      });
-      danSelectAlert.classList.add('hidden');
-      updateDanCheckboxesUI();
-      sound.playKeyTap();
-    });
-
-    // テンキー入力
-    keypadButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const num = btn.getAttribute('data-num');
-        inputNumber(num);
-      });
-    });
-
-    btnClear.addEventListener('click', deleteOne);
-    btnResetInput.addEventListener('click', resetInput);
-    btnSubmitAnswer.addEventListener('click', submitAnswer);
-
-    // キーボード物理入力サポート
+    // 物理キーボード対応
     window.addEventListener('keydown', (e) => {
-      if (screenQuiz.classList.contains('hidden')) return;
+      const quizScreen = document.getElementById('quizScreen');
+      if (quizScreen.classList.contains('hidden') || isProcessing) return;
 
       if (e.key >= '0' && e.key <= '9') {
-        inputNumber(e.key);
+        e.preventDefault();
+        handleNumInput(e.key);
       } else if (e.key === 'Backspace') {
-        deleteOne();
+        e.preventDefault();
+        handleNumBackspace();
       } else if (e.key === 'Enter') {
+        e.preventDefault();
         submitAnswer();
-      } else if (e.key === 'Escape') {
-        resetInput();
+      } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        handleNumClear();
       }
     });
 
-    // 履歴リセットボタン
-    btnResetHistory.addEventListener('click', () => {
-      resetStats();
+    window.addEventListener('DOMContentLoaded', () => {
+      renderDanCheckboxes();
+      updateHistorySummary();
     });
-
-    // 音声トグル
-    soundToggleBtn.addEventListener('click', () => {
-      sound.enabled = !sound.enabled;
-      if (sound.enabled) {
-        soundIcon.textContent = '🔊';
-        soundText.textContent = 'おと ON';
-        soundToggleBtn.classList.remove('bg-gray-100', 'text-gray-400', 'border-gray-200');
-        soundToggleBtn.classList.add('bg-pink-50', 'text-pink-600', 'border-pink-200');
-      } else {
-        soundIcon.textContent = '🔇';
-        soundText.textContent = 'おと OFF';
-        soundToggleBtn.classList.remove('bg-pink-50', 'text-pink-600', 'border-pink-200');
-        soundToggleBtn.classList.add('bg-gray-100', 'text-gray-400', 'border-gray-200');
-      }
-    });
-
-    // 初期化ロード
-    window.onload = function() {
-      updateDanCheckboxesUI();
-      renderStartStats();
-    };
   </script>
 </body>
 </html>
