@@ -2,19 +2,18 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <!-- 画面倍率の完全固定（ズーム禁止メタタグ） -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
   
   <title>きらきら★九九マスター - ぴよちゃん九九</title>
 
-  <!-- iOS / iPadOS Safari フルスクリーンWebアプリ（PWA）設定 -->
+  <!-- iOS / iPadOS Safari フルスクリーンPWA設定 -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="九九マスター">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#FF70A6">
 
-  <!-- ホーム画面追加時の可愛いひよこアプリアイコン（外部画像不要のSVGインライン） -->
+  <!-- ひよこアプリアイコン -->
   <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23FFE5EC'/%3E%3Cstop offset='100%25' stop-color='%23FFB3C6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='180' height='180' rx='40' fill='url(%23bg)'/%3E%3Ccircle cx='90' cy='90' r='76' fill='none' stroke='%23FF70A6' stroke-width='4' stroke-dasharray='8 6'/%3E%3Ctext x='90' y='116' font-size='82' text-anchor='middle' font-family='sans-serif'%3E%F0%9F%90%A3%3C/text%3E%3C/svg%3E">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A3%3C/text%3E%3C/svg%3E">
 
@@ -54,7 +53,6 @@
   </script>
 
   <style>
-    /* 画面スケーリング・テキスト選択・バウンススクロールの完全防止 */
     html, body {
       width: 100%;
       height: 100%;
@@ -71,7 +69,6 @@
       font-family: 'M PLUS Rounded 1c', sans-serif;
     }
 
-    /* ボタンタップ時の青いハイライトを無効化 & レスポンス最速化 */
     button, input, select, a {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
@@ -102,7 +99,6 @@
       animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
-    /* iPhoneのノッチ / ホームバー用セーフエリア */
     .safe-top {
       padding-top: env(safe-area-inset-top, 12px);
     }
@@ -136,10 +132,16 @@
     <div id="startScreen" class="w-full max-w-lg mx-auto bg-white rounded-3xl p-5 md:p-7 border-4 border-pink-200 shadow-xl text-center flex flex-col items-center">
       <div class="text-6xl md:text-7xl mb-1 animate-float">🐣</div>
       <h2 class="text-2xl md:text-3xl font-black text-[#5A4E65] mb-1">九九にちょうせん！</h2>
-      <p class="text-xs md:text-sm text-gray-400 font-bold mb-4">れんしゅうする だん をえらんでね</p>
+      <p class="text-xs md:text-sm text-gray-400 font-bold mb-3">れんしゅうする だん をえらんでね</p>
+
+      <!-- iPadの消音モード注意喚起バナー -->
+      <div class="w-full bg-amber-50 border border-amber-200 rounded-xl px-3 py-1.5 mb-3 flex items-center justify-center gap-1 text-[11px] text-amber-800 font-bold">
+        <span>⚠️</span>
+        <span>iPadでおとが出ないときは「マナーモード（消音）」を解除してね！</span>
+      </div>
 
       <!-- 段の選択パネル -->
-      <div class="w-full bg-[#FFF5F8] border-2 border-pink-200 rounded-2xl p-3.5 mb-4">
+      <div class="w-full bg-[#FFF5F8] border-2 border-pink-200 rounded-2xl p-3.5 mb-3">
         <div class="flex justify-between items-center mb-2.5">
           <span class="text-xs font-black text-pink-500 uppercase tracking-wider">★ 出題する段</span>
           <div class="flex gap-1.5 text-xs">
@@ -147,14 +149,12 @@
             <button onclick="selectDanPreset('all')" class="bg-pink-400 active:bg-pink-500 text-white font-bold px-2 py-1 rounded-lg">ぜんぶ</button>
           </div>
         </div>
-        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="danCheckboxContainer">
-          <!-- 1〜9のチェックボックス -->
-        </div>
+        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="danCheckboxContainer"></div>
         <p id="danWarning" class="text-red-500 text-xs font-bold mt-2 hidden">※ すくなくとも1つは えらんでね！</p>
       </div>
 
       <!-- 履歴表示パネル -->
-      <div class="w-full mb-5 text-left bg-amber-50/70 border-2 border-amber-200/80 rounded-2xl p-3 flex items-center justify-between">
+      <div class="w-full mb-4 text-left bg-amber-50/70 border-2 border-amber-200/80 rounded-2xl p-3 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-xl">📊</span>
           <div>
@@ -165,7 +165,7 @@
         <button onclick="resetStats()" class="text-[10px] text-gray-400 active:text-red-500 underline">きろく消去</button>
       </div>
 
-      <button onclick="startGame()" class="pop-btn w-full py-3.5 md:py-4 bg-[#FF70A6] active:bg-[#ff5c99] text-white text-xl md:text-2xl font-black rounded-2xl shadow-pop-pink tracking-widest flex items-center justify-center gap-2">
+      <button id="startMainBtn" onclick="startGame()" class="pop-btn w-full py-3.5 md:py-4 bg-[#FF70A6] active:bg-[#ff5c99] text-white text-xl md:text-2xl font-black rounded-2xl shadow-pop-pink tracking-widest flex items-center justify-center gap-2">
         <span>すたーと！</span>
         <span class="text-2xl">🚀</span>
       </button>
@@ -173,7 +173,6 @@
 
     <!-- 2. クイズ画面 -->
     <div id="quizScreen" class="w-full hidden">
-      <!-- 進行ヘッダー -->
       <div class="mb-3 bg-white/90 backdrop-blur rounded-2xl px-4 py-2 border-2 border-pink-100 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-2">
           <span class="bg-pink-100 text-[#FF70A6] text-xs font-black px-2 py-0.5 rounded-md">もんだい</span>
@@ -183,12 +182,9 @@
         <button onclick="quitToStart()" class="text-xs text-gray-400 active:text-gray-600 font-bold px-2 py-1">やめる</button>
       </div>
 
-      <!-- 2カラム構成（左：問題、右：キーパッド） -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-4 items-stretch relative">
-        
         <!-- 左側：問題エリア -->
         <div class="md:col-span-6 bg-white rounded-3xl p-4 md:p-6 border-4 border-pink-200 shadow-xl flex flex-col justify-between items-center text-center relative overflow-hidden min-h-[200px] md:min-h-[300px]">
-          
           <div class="flex items-center gap-2">
             <div class="text-3xl animate-bounce">🐣</div>
             <div id="cheerBubble" class="bg-amber-100 text-amber-800 text-xs font-black px-3 py-1 rounded-full border border-amber-300">
@@ -196,7 +192,6 @@
             </div>
           </div>
 
-          <!-- 計算式 -->
           <div class="my-4 md:my-6 flex items-center justify-center gap-2 md:gap-3 text-5xl md:text-6xl font-black font-fredoka text-[#5A4E65]">
             <span id="num1" class="text-[#FF70A6]">7</span>
             <span class="text-gray-300 text-4xl">×</span>
@@ -204,7 +199,6 @@
             <span class="text-gray-300 text-4xl">=</span>
           </div>
 
-          <!-- 回答枠 -->
           <div class="w-full flex flex-col items-center">
             <span class="text-[11px] font-bold text-gray-400 mb-1">あなたの こたえ</span>
             <div id="answerDisplay" class="w-40 h-14 bg-[#FFF9FB] border-4 border-dashed border-pink-300 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black font-fredoka text-[#FF70A6] shadow-inner tracking-wider">
@@ -212,19 +206,16 @@
             </div>
           </div>
 
-          <!-- ⭕️ / ❌ ポップアップ -->
           <div id="instantFeedbackOverlay" class="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center z-20 hidden">
             <div class="text-center animate-pop-in">
               <div id="feedbackIcon" class="text-7xl md:text-8xl mb-1">⭕️</div>
               <div id="feedbackText" class="text-2xl md:text-3xl font-black text-pink-500">せいかい！ピヨ✨</div>
             </div>
           </div>
-
         </div>
 
         <!-- 右側：テンキー -->
         <div class="md:col-span-6 bg-white rounded-3xl p-4 border-4 border-pink-200 shadow-xl flex flex-col justify-between">
-          
           <div class="grid grid-cols-3 gap-2 mb-2.5">
             <button type="button" onclick="handleNumInput('1')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">1</button>
             <button type="button" onclick="handleNumInput('2')" class="pop-btn h-13 md:h-15 py-3 bg-[#FFF8FA] active:bg-pink-100 text-[#5A4E65] border-2 border-pink-200 text-2xl md:text-3xl font-black font-fredoka rounded-2xl shadow-pop flex items-center justify-center">2</button>
@@ -246,13 +237,11 @@
             <span>✨</span>
           </button>
         </div>
-
       </div>
     </div>
 
     <!-- 3. 添削・結果画面 -->
     <div id="resultScreen" class="w-full max-w-xl mx-auto bg-white rounded-3xl p-5 md:p-6 border-4 border-pink-200 shadow-xl hidden">
-      
       <div class="text-center mb-4">
         <div id="resultChick" class="text-6xl mb-1 animate-float">🐣</div>
         <div class="text-xs font-black text-pink-500 tracking-wider">けっかはっぴょう！</div>
@@ -265,7 +254,6 @@
         </div>
       </div>
 
-      <!-- 添削一覧 -->
       <div class="mb-4">
         <h3 class="text-[11px] font-black text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
           <span>📝</span> 10もんの てんさく
@@ -273,7 +261,6 @@
         <div id="reviewList" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 overflow-y-auto p-1 border-2 border-gray-100 rounded-2xl bg-gray-50/50"></div>
       </div>
 
-      <!-- 苦手分析 -->
       <div class="mb-4 bg-pink-50/60 border-2 border-pink-200 rounded-2xl p-3">
         <div class="flex items-center justify-between mb-1.5">
           <h4 class="text-xs font-black text-pink-600 flex items-center gap-1">
@@ -288,7 +275,6 @@
         <span>もういちど チャレンジ！</span>
         <span>🐣</span>
       </button>
-
     </div>
 
   </main>
@@ -298,37 +284,125 @@
   </footer>
 
   <script>
-    // --- ズーム（ピンチイン/アウト・ダブルタップ）のJavaScriptインターセプト ---
-    // iOS Safariでメタタグを無視してズームされるのを完全に防止
-    document.addEventListener('gesturestart', function(e) {
-      e.preventDefault();
-    }, { passive: false });
-
-    document.addEventListener('gesturechange', function(e) {
-      e.preventDefault();
-    }, { passive: false });
-
-    document.addEventListener('gestureend', function(e) {
-      e.preventDefault();
-    }, { passive: false });
-
-    // 2本指タップズーム抑止
-    document.addEventListener('touchstart', function(e) {
-      if (e.touches.length > 1) {
-        e.preventDefault();
-      }
-    }, { passive: false });
-
+    // --- iPadOS / iOS ズーム抑止 ---
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
+    document.addEventListener('touchstart', function(e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function(e) {
       const now = Date.now();
-      if (now - lastTouchEnd <= 300) {
-        e.preventDefault(); // ダブルタップズーム防止
-      }
+      if (now - lastTouchEnd <= 300) e.preventDefault();
       lastTouchEnd = now;
     }, { passive: false });
 
-    // --- アプリケーションロジック ---
+    // --- 【重要】iOS / iPad Safari Web Audio 完全アンロック対策 ---
+    let audioCtx = null;
+    let isAudioUnlocked = false;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+      }
+      return audioCtx;
+    }
+
+    // iPadのサスペンド状態を物理タップで叩き起こすアンロック処理
+    function unlockAudio() {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      if (!isAudioUnlocked) {
+        // 無音の極小バッファを再生してiOSのオーディオパイプラインをこじ開ける
+        try {
+          const buffer = ctx.createBuffer(1, 1, 22050);
+          const source = ctx.createBufferSource();
+          source.buffer = buffer;
+          source.connect(ctx.destination);
+          source.start(0);
+          isAudioUnlocked = true;
+        } catch (e) {}
+      }
+    }
+
+    // 画面全体のどこかを最初にタップした瞬間に即アンロック
+    window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+    window.addEventListener('click', unlockAudio, { once: true, passive: true });
+
+    let soundEnabled = true;
+
+    function toggleSound() {
+      unlockAudio();
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundIcon').innerText = soundEnabled ? '🔊' : '🔇';
+      document.getElementById('soundText').innerText = soundEnabled ? 'おとON' : 'おとOFF';
+      if (soundEnabled) playCorrectSound(); // 切り替えた瞬間に確認音
+    }
+
+    function playTone(freq, startTime, duration, type = 'sine', maxVol = 0.25) {
+      try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.exponentialRampToValueAtTime(maxVol, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.05);
+      } catch (e) {
+        console.error("Audio error:", e);
+      }
+    }
+
+    // ◯ ピロン♪ 効果音（E6 -> B6）
+    function playCorrectSound() {
+      if (!soundEnabled) return;
+      unlockAudio();
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      playTone(1318.51, now, 0.2, 'sine', 0.35); // E6
+      playTone(1975.53, now + 0.12, 0.38, 'sine', 0.35); // B6
+    }
+
+    // ✕ ぶぶー！ 効果音（低音2段）
+    function playWrongSound() {
+      if (!soundEnabled) return;
+      unlockAudio();
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      playTone(160, now, 0.14, 'triangle', 0.4);
+      playTone(125, now + 0.15, 0.3, 'triangle', 0.45);
+    }
+
+    // テンキータップ音（ポコッ）
+    function playTapSound() {
+      if (!soundEnabled) return;
+      unlockAudio();
+      const ctx = getAudioContext();
+      playTone(550, ctx.currentTime, 0.05, 'sine', 0.15);
+    }
+
+    // 満点ファンファーレ
+    function playFanfareSound() {
+      if (!soundEnabled) return;
+      unlockAudio();
+      const ctx = getAudioContext();
+      const now = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      notes.forEach((freq, idx) => {
+        playTone(freq, now + idx * 0.1, 0.22, 'triangle', 0.25);
+      });
+      playTone(1046.50, now + 0.42, 0.6, 'sine', 0.35);
+    }
+
+    // --- ゲームロジック ---
     const TOTAL_QUESTIONS = 10;
     let selectedDans = [2, 3, 4, 5];
     let currentQuestions = [];
@@ -336,83 +410,8 @@
     let currentAnswerInput = "";
     let userResults = [];
     let isProcessing = false;
-    let soundEnabled = true;
 
-    // Web Audio API
-    let audioCtx = null;
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      document.getElementById('soundIcon').innerText = soundEnabled ? '🔊' : '🔇';
-      document.getElementById('soundText').innerText = soundEnabled ? 'おとON' : 'おとOFF';
-      if (soundEnabled) initAudio();
-    }
-
-    function playCorrectSound() {
-      if (!soundEnabled) return;
-      initAudio();
-      try {
-        const now = audioCtx.currentTime;
-        playTone(1318.51, now, 0.18, 'sine', 0.25); // E6
-        playTone(1975.53, now + 0.12, 0.35, 'sine', 0.25); // B6
-      } catch (e) {}
-    }
-
-    function playWrongSound() {
-      if (!soundEnabled) return;
-      initAudio();
-      try {
-        const now = audioCtx.currentTime;
-        playTone(160, now, 0.14, 'triangle', 0.3);
-        playTone(130, now + 0.15, 0.28, 'triangle', 0.35);
-      } catch (e) {}
-    }
-
-    function playTapSound() {
-      if (!soundEnabled) return;
-      initAudio();
-      try {
-        playTone(600, audioCtx.currentTime, 0.04, 'sine', 0.1);
-      } catch (e) {}
-    }
-
-    function playFanfareSound() {
-      if (!soundEnabled) return;
-      initAudio();
-      try {
-        const now = audioCtx.currentTime;
-        const notes = [523.25, 659.25, 783.99, 1046.50];
-        notes.forEach((freq, idx) => {
-          playTone(freq, now + idx * 0.1, 0.22, 'triangle', 0.2);
-        });
-        playTone(1046.50, now + 0.42, 0.55, 'sine', 0.3);
-      } catch (e) {}
-    }
-
-    function playTone(freq, startTime, duration, type = 'sine', maxVol = 0.2) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.001, startTime);
-      gain.gain.exponentialRampToValueAtTime(maxVol, startTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration + 0.05);
-    }
-
-    // 学習データ保存
-    const STORAGE_KEY = 'kuku_chick_stats_v2';
+    const STORAGE_KEY = 'kuku_chick_stats_v3';
     function getStoredStats() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -459,7 +458,6 @@
       }
     }
 
-    // 段選択パネル
     function renderDanCheckboxes() {
       const container = document.getElementById('danCheckboxContainer');
       container.innerHTML = '';
@@ -470,11 +468,12 @@
           isChecked ? 'bg-pink-100 border-pink-400 text-pink-600 shadow-sm' : 'bg-white border-gray-200 text-gray-400'
         }`;
         label.innerHTML = `
-          <input type="checkbox" value="${d}" ${isChecked ? 'checked' : ''} onchange="onDanCheckboxChange()" class="accent-pink-500 w-4 h-4 pointer-events-none">
+          <input type="checkbox" value="${d}" ${isChecked ? 'checked' : ''} class="accent-pink-500 w-4 h-4 pointer-events-none">
           <span>${d}のだん</span>
         `;
         label.onclick = (e) => {
           e.preventDefault();
+          playTapSound();
           if (selectedDans.includes(d)) {
             selectedDans = selectedDans.filter(v => v !== d);
           } else {
@@ -489,6 +488,7 @@
     }
 
     function selectDanPreset(type) {
+      playTapSound();
       if (type === '2-5') selectedDans = [2, 3, 4, 5];
       else if (type === 'all') selectedDans = [1, 2, 3, 4, 5, 6, 7, 8, 9];
       renderDanCheckboxes();
@@ -507,7 +507,8 @@
 
     function startGame() {
       if (!validateDanSelection()) return;
-      initAudio();
+      unlockAudio(); // スタートボタンでオーディオ完全同期解放
+      playCorrectSound(); // 開始音として明るいピロン♪を鳴らす
 
       currentQuestions = [];
       for (let i = 0; i < TOTAL_QUESTIONS; i++) {
@@ -752,6 +753,7 @@
     }
 
     function goToStart() {
+      playTapSound();
       document.getElementById('resultScreen').classList.add('hidden');
       document.getElementById('quizScreen').classList.add('hidden');
       document.getElementById('startScreen').classList.remove('hidden');
@@ -764,7 +766,6 @@
       }
     }
 
-    // 物理キーボード対応
     window.addEventListener('keydown', (e) => {
       const quizScreen = document.getElementById('quizScreen');
       if (quizScreen.classList.contains('hidden') || isProcessing) return;
